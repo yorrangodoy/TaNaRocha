@@ -12,7 +12,7 @@
 [![License](https://img.shields.io/badge/license-MIT-purple?style=for-the-badge)](LICENSE)
 [![PWA](https://img.shields.io/badge/PWA-ready-7C3AED?style=for-the-badge)](#)
 
-🔗 **[Acessar o app ao vivo →](https://tanarocha.vercel.app)**
+🔗 **[Acessar o app ao vivo →](https://ta-na-rocha.vercel.app/)**
 
 </div>
 
