@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaNaRocha — Rachadinha? Só da conta.</title>
+
+  <!-- SEO + WhatsApp / Open Graph -->
+  <meta name="description" content="App gratuito para dividir contas entre amigos de forma justa e divertida." />
+  <meta property="og:title" content="TaNaRocha — Rachadinha? Só da conta." />
+  <meta property="og:description" content="Divide a conta entre amigos sem briga e sem drama." />
+  <meta property="og:image" content="./assets/logo-tanarocha.png" />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#7C3AED" />
+
+  <!-- PWA Básico -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="TaNaRocha" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="./assets/logo-tanarocha.png" />
+  <link rel="apple-touch-icon" href="./assets/logo-tanarocha.png" />
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: { DEFAULT: '#7C3AED', dark: '#5B21B6', light: '#A855F7' },
+            bg: { DEFAULT: '#0F0F0F', card: '#1A1A1A', surface: '#242424' },
+            success: '#22C55E',
+            danger: '#EF4444',
+          },
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+        }
+      }
+    }
+  </script>
+
+  <!-- Estilos customizados -->
+  <link rel="stylesheet" href="./css/style.css" />
+</head>
+<body class="bg-bg text-white font-sans min-h-screen">
+
+  <!-- [H1] Barra de progresso de etapas — sempre visível durante o fluxo -->
+  <div id="progress-bar-container" class="hidden fixed top-0 left-0 right-0 z-50 bg-bg-card border-b border-white/10">
+    <div class="max-w-lg mx-auto px-4 py-2">
+      <div class="flex items-center justify-between mb-1">
+        <span id="progress-label" class="text-xs text-white/60 font-medium"></span>
+        <span id="progress-step" class="text-xs text-primary-light font-bold"></span>
+      </div>
+      <div class="h-1 bg-white/10 rounded-full overflow-hidden">
+        <div id="progress-fill" class="h-full bg-gradient-to-r from-primary to-primary-light rounded-full transition-all duration-500" style="width: 0%"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Container principal -->
+  <main id="app" class="max-w-lg mx-auto px-4 pb-8" role="main">
+
+    <!-- =============================================
+         TELA 1: HOME
+         ============================================= -->
+    <section id="screen-home" class="screen min-h-screen flex flex-col items-center justify-center py-12" aria-label="Página inicial">
+
+      <!-- [H10] Onboarding na primeira abertura -->
+      <div id="onboarding-overlay" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+        <div class="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
+          <div class="text-4xl mb-4 text-center">🪨</div>
+          <h2 id="onboarding-title" class="text-xl font-bold text-center mb-2">Bem-vindo ao TaNaRocha!</h2>
+          <p class="text-white/60 text-sm text-center mb-6">
+            Aqui você divide a conta entre amigos sem briga e sem drama. Cria uma sessão, lança o que cada um consumiu e o app calcula quem paga pra quem. Simple assim. 🙌
+          </p>
+          <div class="space-y-2 text-sm mb-6">
+            <div class="flex items-center gap-2 text-white/70"><span>👥</span><span>Adicione os participantes</span></div>
+            <div class="flex items-center gap-2 text-white/70"><span>💸</span><span>Lance o que cada um consumiu</span></div>
+            <div class="flex items-center gap-2 text-white/70"><span>✅</span><span>Veja quem deve quanto e marque como pago</span></div>
+          </div>
+          <button id="btn-close-onboarding" class="btn-primary w-full" aria-label="Fechar tutorial de introdução">
+            Entendi, bora rachar! 🚀
+          </button>
+        </div>
+      </div>
+
+      <!-- Logo oficial -->
+      <div class="mb-8 text-center" id="logo-container">
+        <!-- Toque longo no logo → ativa Modo Demo -->
+        <img
+          src="./assets/logo-tanarocha.png"
+          alt="TaNaRocha — Rachadinha? Só da conta."
+          class="logo-home mx-auto logo-pulse"
+          id="logo-home-img"
+          draggable="false"
+        />
+        <!-- [H2] Microcopy em linguagem natural brasileira -->
+        <p class="text-white/50 text-sm mt-3 font-medium">Rachadinha? Só da conta.</p>
+      </div>
+
+      <!-- Botões de ação -->
+      <div class="w-full space-y-3">
+        <!-- [H4] Padrão visual consistente em todos os componentes — botão primário sempre roxo -->
+        <button id="btn-nova-rachada" class="btn-primary w-full text-lg py-4" aria-label="Criar nova sessão de racha">
+          🍺 Bora rachar?
+        </button>
+        <button id="btn-amigos" class="btn-secondary w-full text-lg py-4" aria-label="Ver e gerenciar amigos cadastrados">
+          👥 Meus Amigos
+        </button>
+        <button id="btn-historico" class="btn-secondary w-full text-lg py-4" aria-label="Ver histórico e ranking de participantes">
+          🏆 Histórico &amp; Ranking
+        </button>
+      </div>
+
+      <!-- [H10] Estado vazio / instrução contextual -->
+      <p id="home-hint" class="mt-8 text-white/30 text-xs text-center">
+        Nenhuma rachada ainda. Bora sair? 🍺
+      </p>
+    </section>
+
+    <!-- =============================================
+         TELA 2: NOVA SESSÃO
+         ============================================= -->
+    <section id="screen-nova-sessao" class="screen hidden pt-20 pb-8" aria-label="Nova sessão de racha">
+
+      <div class="flex items-center gap-3 mb-6">
+        <!-- [H3] Saída de emergência — botão voltar visível em todas as telas -->
+        <button class="btn-back" data-target="screen-home" aria-label="Voltar para a página inicial">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h2 class="text-xl font-bold">Nova Rachada</h2>
+      </div>
+
+      <!-- Nome do evento -->
+      <div class="card mb-4">
+        <label for="input-event-name" class="block text-sm font-semibold text-white/70 mb-2">
+          Nome do evento
+        </label>
+        <!-- [H10] Placeholder descritivo -->
+        <input
+          id="input-event-name"
+          type="text"
+          class="input-field"
+          placeholder="Ex: Bar da Sexta 🍺"
+          maxlength="60"
+          aria-required="true"
+          aria-describedby="error-event-name"
+        />
+        <!-- [H9] Mensagem de erro clara e localizada -->
+        <p id="error-event-name" class="error-msg hidden" role="alert" aria-live="polite">
+          ⚠️ Coloca um nome pro evento aí
+        </p>
+      </div>
+
+      <!-- Adicionar participantes -->
+      <div class="card mb-4">
+        <!-- [H6] Contexto sempre visível — contador de participantes -->
+        <div class="flex items-center justify-between mb-3">
+          <label for="input-participant-name" class="text-sm font-semibold text-white/70">
+            Participantes
+          </label>
+          <span id="participant-count-badge" class="badge-count" aria-live="polite" aria-label="Número de participantes adicionados">0 adicionados</span>
+        </div>
+
+        <div class="flex gap-2 mb-2">
+          <input
+            id="input-participant-name"
+            type="text"
+            class="input-field flex-1"
+            placeholder="Digite um nome ou escolha abaixo"
+            maxlength="30"
+            aria-label="Nome do participante"
+            aria-describedby="error-participant"
+            autocomplete="off"
+          />
+          <button id="btn-add-participant" class="btn-icon-add" aria-label="Adicionar participante">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </button>
+        </div>
+
+        <!-- [H9] Mensagem de erro localizada -->
+        <p id="error-participant" class="error-msg hidden" role="alert" aria-live="polite"></p>
+
+        <!-- [H7] Chips de sugestão de amigos cadastrados -->
+        <div id="chips-sugestao" class="chips-container" aria-label="Amigos cadastrados para adicionar rapidamente" role="group">
+          <!-- preenchido via JS -->
+        </div>
+
+        <!-- Lista de participantes adicionados -->
+        <ul id="participant-list" class="space-y-2 mt-3" role="list" aria-label="Lista de participantes adicionados"></ul>
+
+        <!-- [H5] Aviso mínimo 2 participantes -->
+        <p id="min-participants-hint" class="text-white/40 text-xs mt-3 text-center" aria-live="polite">
+          Mínimo 2 participantes para continuar
+        </p>
+      </div>
+
+      <!-- Botão avançar -->
+      <!-- [H5] Prevenção de erro — botão desabilitado até ter 2+ participantes -->
+      <button id="btn-avancar-modo" class="btn-primary w-full" disabled aria-label="Avançar para escolha do modo de racha">
+        Escolher modo →
+      </button>
+    </section>
+
+    <!-- =============================================
+         TELA 3: ESCOLHA DO MODO
+         ============================================= -->
+    <section id="screen-modo" class="screen hidden pt-20 pb-8" aria-label="Escolha o modo de racha">
+
+      <div class="flex items-center gap-3 mb-6">
+        <button class="btn-back" data-target="screen-nova-sessao" aria-label="Voltar para configuração da sessão">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h2 class="text-xl font-bold">Escolha o Modo</h2>
+      </div>
+
+      <!-- [H6] Modo e evento sempre visíveis -->
+      <div class="text-center mb-6">
+        <p class="text-white/50 text-sm">Sessão: <span id="modo-event-label" class="text-white font-semibold"></span></p>
+      </div>
+
+      <div class="space-y-4">
+        <!-- [H10] Tooltip / descrição de cada modo -->
+        <button id="btn-modo-individual" class="mode-card group" aria-label="Selecionar modo individual — cada um lança o que consumiu" role="radio" aria-checked="false">
+          <div class="text-3xl mb-2">👤</div>
+          <h3 class="text-lg font-bold mb-1">Modo Individual</h3>
+          <!-- [H2] Linguagem natural -->
+          <p class="text-white/50 text-sm">Cada um lança o que consumiu. Ideal pra quando cada um pediu uma coisa diferente. Sem injustiça!</p>
+          <div class="mt-3 inline-block text-xs bg-white/10 text-white/60 px-3 py-1 rounded-full">
+            Recomendado 👍
+          </div>
+        </button>
+
+        <button id="btn-modo-total" class="mode-card group" aria-label="Selecionar modo total — valor dividido igualmente" role="radio" aria-checked="false">
+          <div class="text-3xl mb-2">💰</div>
+          <h3 class="text-lg font-bold mb-1">Modo Total</h3>
+          <p class="text-white/50 text-sm">Valor total dividido igualmente pra todo mundo. Rápido e sem discussão quando todo mundo comeu igual.</p>
+        </button>
+      </div>
+    </section>
+
+    <!-- =============================================
+         TELA 4: LANÇAMENTO INDIVIDUAL
+         ============================================= -->
+    <section id="screen-individual" class="screen hidden pt-20 pb-8" aria-label="Lançamento individual de itens">
+
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <button class="btn-back" data-target="screen-modo" aria-label="Voltar para escolha do modo">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h2 class="text-lg font-bold leading-tight">Lançamento</h2>
+            <!-- [H6] Modo sempre visível no topo -->
+            <span class="text-xs text-primary-light font-semibold">👤 Modo Individual</span>
+          </div>
+        </div>
+        <!-- [H1] Status em tempo real de quanto já foi lançado -->
+        <div class="text-right">
+          <p class="text-xs text-white/40">Total lançado</p>
+          <p id="individual-total-display" class="text-lg font-bold text-primary-light" aria-live="polite">R$ 0,00</p>
+        </div>
+      </div>
+
+      <!-- [H6] Evento visível -->
+      <p class="text-white/40 text-xs mb-4">Sessão: <span id="individual-event-label" class="text-white/70"></span></p>
+
+      <!-- Lista de participantes com itens -->
+      <div id="individual-participants-list" class="space-y-4 mb-6" role="list"></div>
+
+      <!-- [H5] Botão desabilitado se total = 0 -->
+      <button id="btn-fechar-individual" class="btn-primary w-full" aria-label="Fechar conta e ver resultados">
+        Fechar a conta 🧾
+      </button>
+
+      <!-- [H3] Cancelar sessão com confirmação -->
+      <button id="btn-cancelar-individual" class="btn-danger-outline w-full mt-3" aria-label="Cancelar esta sessão">
+        Cancelar sessão
+      </button>
+    </section>
+
+    <!-- =============================================
+         TELA 5: LANÇAMENTO TOTAL
+         ============================================= -->
+    <section id="screen-total" class="screen hidden pt-20 pb-8" aria-label="Lançamento de valor total">
+
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <button class="btn-back" data-target="screen-modo" aria-label="Voltar para escolha do modo">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h2 class="text-lg font-bold leading-tight">Valor Total</h2>
+            <!-- [H6] Modo sempre visível -->
+            <span class="text-xs text-primary-light font-semibold">💰 Modo Total</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="text-white/40 text-xs mb-6">Sessão: <span id="total-event-label" class="text-white/70"></span></p>
+
+      <div class="card mb-6 text-center">
+        <p class="text-white/50 text-sm mb-4">Qual foi o valor total da conta?</p>
+
+        <!-- [H2] Valores em R$ (moeda brasileira) -->
+        <div class="flex items-center justify-center gap-4 mb-4">
+          <!-- [H5] Botões +/- em vez de input livre para evitar erros -->
+          <button id="btn-total-minus" class="btn-value-control" aria-label="Diminuir valor em R$ 5,00">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/></svg>
+          </button>
+
+          <div class="flex-1">
+            <label for="input-total-value" class="sr-only">Valor total em reais</label>
+            <input
+              id="input-total-value"
+              type="number"
+              step="0.01"
+              min="0"
+              class="input-value-display"
+              value="0"
+              aria-label="Valor total da conta em reais"
+            />
+            <p class="text-white/30 text-xs mt-1">em reais</p>
+          </div>
+
+          <button id="btn-total-plus" class="btn-value-control" aria-label="Aumentar valor em R$ 5,00">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+          </button>
+        </div>
+
+        <!-- [H1] Divisão em tempo real -->
+        <div id="total-split-preview" class="bg-bg rounded-xl p-4" aria-live="polite">
+          <p class="text-white/40 text-xs mb-1">Cada um paga:</p>
+          <p id="total-per-person" class="text-2xl font-black text-primary-light">R$ 0,00</p>
+          <p id="total-participants-count" class="text-white/40 text-xs mt-1"></p>
+        </div>
+      </div>
+
+      <!-- [H9] Erro localizado -->
+      <p id="error-total-value" class="error-msg hidden mb-4" role="alert" aria-live="polite">
+        ⚠️ O valor total precisa ser maior que R$ 0,00
+      </p>
+
+      <button id="btn-fechar-total" class="btn-primary w-full" aria-label="Fechar conta e ver resultados">
+        Fechar a conta 🧾
+      </button>
+
+      <button id="btn-cancelar-total" class="btn-danger-outline w-full mt-3" aria-label="Cancelar esta sessão">
+        Cancelar sessão
+      </button>
+    </section>
+
+    <!-- =============================================
+         TELA 6: RESULTADO
+         ============================================= -->
+    <section id="screen-resultado" class="screen hidden pt-20 pb-8" aria-label="Resultado da rachada">
+
+      <div class="flex items-center justify-between mb-4">
+        <div class="flex items-center gap-3">
+          <button class="btn-back" id="btn-back-resultado" aria-label="Voltar para o lançamento">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h2 class="text-lg font-bold leading-tight" id="resultado-event-title"></h2>
+            <p class="text-xs text-white/40">Resultado da rachada</p>
+          </div>
+        </div>
+        <!-- [H1] Status geral da sessão -->
+        <div class="text-right">
+          <span id="resultado-pagos-badge" class="badge-status" aria-live="polite"></span>
+        </div>
+      </div>
+
+      <!-- Resumo do total -->
+      <div class="card mb-4 text-center">
+        <p class="text-white/40 text-xs mb-1">Total da conta</p>
+        <p id="resultado-total" class="text-3xl font-black text-primary-light"></p>
+      </div>
+
+      <!-- [H2] "Quem tá devendo? 👀" -->
+      <h3 class="text-sm font-bold text-white/60 uppercase tracking-widest mb-3">Quem tá devendo? 👀</h3>
+      <div id="resultado-balances" class="space-y-3 mb-6" role="list" aria-label="Saldo de cada participante"></div>
+
+      <!-- Transferências otimizadas -->
+      <h3 class="text-sm font-bold text-white/60 uppercase tracking-widest mb-3">Pix pra quem?</h3>
+      <div id="resultado-transfers" class="space-y-2 mb-6" role="list" aria-label="Transferências necessárias"></div>
+
+      <!-- Ações -->
+      <div class="space-y-3">
+        <!-- [H7] Atalho de compartilhamento -->
+        <button id="btn-copiar-whatsapp" class="btn-secondary w-full" aria-label="Copiar resumo para WhatsApp">
+          📱 Copiar resumo pro WhatsApp
+        </button>
+        <button id="btn-nova-rachada-resultado" class="btn-primary w-full" aria-label="Criar nova rachada">
+          🍺 Nova Rachada
+        </button>
+      </div>
+    </section>
+
+    <!-- =============================================
+         TELA 7: HISTÓRICO + RANKING
+         ============================================= -->
+    <section id="screen-historico" class="screen hidden pt-20 pb-8" aria-label="Histórico e ranking">
+
+      <div class="flex items-center gap-3 mb-6">
+        <button class="btn-back" data-target="screen-home" aria-label="Voltar para a página inicial">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h2 class="text-xl font-bold">Histórico &amp; Ranking 🏆</h2>
+      </div>
+
+      <!-- Badges / Gamificação -->
+      <div id="badges-section" class="mb-6">
+        <h3 class="text-sm font-bold text-white/60 uppercase tracking-widest mb-3">Hall da Fama</h3>
+        <div id="badges-list" class="space-y-3" role="list" aria-label="Ranking de participantes com badges"></div>
+        <!-- [H10] Estado vazio -->
+        <p id="badges-empty" class="text-white/30 text-sm text-center py-4 hidden">
+          Complete rachadas para desbloquear os badges! 🏅
+        </p>
+      </div>
+
+      <!-- Histórico de sessões -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-white/60 uppercase tracking-widest">Rachadas Anteriores</h3>
+          <!-- [H5] Confirmar antes de ação destrutiva -->
+          <button id="btn-limpar-historico" class="text-xs text-danger hover:text-red-400 transition-colors" aria-label="Limpar todo o histórico">
+            Limpar tudo
+          </button>
+        </div>
+
+        <div id="historico-list" class="space-y-3" role="list" aria-label="Lista de sessões anteriores"></div>
+
+        <!-- [H10] Estado vazio com instrução -->
+        <div id="historico-empty" class="hidden text-center py-12">
+          <div class="text-4xl mb-3">🪨</div>
+          <p class="text-white/40 text-sm">Nenhuma rachada ainda. Bora sair? 🍺</p>
+          <button class="btn-primary mt-4" data-target-screen="screen-home" onclick="showScreen('screen-home')" aria-label="Criar primeira rachada">
+            Criar primeira rachada
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- =============================================
+         TELA 8: MEUS AMIGOS
+         ============================================= -->
+    <section id="screen-amigos" class="screen hidden pt-20 pb-28" aria-label="Meus Amigos">
+
+      <div class="flex items-center gap-3 mb-6">
+        <button class="btn-back" data-target="screen-home" aria-label="Voltar para a página inicial">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <h2 class="text-xl font-bold">Meus Amigos 👥</h2>
+      </div>
+
+      <!-- [H6] Reconhecimento — lista visual de amigos já cadastrados, sem precisar lembrar nomes -->
+      <div id="amigos-list" class="space-y-3" role="list" aria-label="Lista de amigos cadastrados"></div>
+
+      <!-- [H10] Estado vazio -->
+      <div id="amigos-empty" class="hidden text-center py-12">
+        <div class="text-4xl mb-3">👥</div>
+        <p class="text-white/40 text-sm mb-4">Nenhum amigo cadastrado ainda.<br/>Bora chamar a galera? 👥</p>
+        <button id="btn-add-amigo-empty" class="btn-primary" aria-label="Adicionar primeiro amigo">
+          Adicionar primeiro amigo
+        </button>
+      </div>
+
+      <!-- Botão flutuante de adicionar — [H5] touch friendly 48px+ -->
+      <button
+        id="btn-fab-add-amigo"
+        class="fab-btn"
+        aria-label="Adicionar novo amigo"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+        <span class="text-sm font-bold">Adicionar amigo</span>
+      </button>
+
+      <!-- [DEMO] Modo Demo — botão discreto no canto -->
+      <div class="mt-6 flex items-center justify-between">
+        <button id="btn-modo-demo" class="text-xs text-white/20 hover:text-white/40 transition-colors" aria-label="Ativar modo de demonstração com dados fictícios">
+          🎬 Modo Demo
+        </button>
+        <button id="btn-limpar-demo" class="hidden text-xs text-danger/40 hover:text-danger transition-colors" aria-label="Limpar dados do modo demo">
+          🗑️ Limpar Demo
+        </button>
+      </div>
+    </section>
+
+    <!-- Modal: Adicionar / Editar amigo -->
+    <div id="modal-amigo" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-amigo-title">
+      <div class="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+        <h3 id="modal-amigo-title" class="text-lg font-bold mb-4">Novo Amigo</h3>
+        <label for="input-amigo-nome" class="block text-sm font-semibold text-white/70 mb-2">Nome</label>
+        <input
+          id="input-amigo-nome"
+          type="text"
+          class="input-field w-full mb-2"
+          placeholder="Ex: João Silva"
+          maxlength="40"
+          aria-required="true"
+        />
+        <!-- Preview do avatar -->
+        <div class="flex items-center gap-3 mb-4 p-3 bg-bg rounded-xl">
+          <div id="preview-avatar" class="avatar-circle" aria-hidden="true">?</div>
+          <div>
+            <p class="text-xs text-white/40">Preview do avatar</p>
+            <p id="preview-nome" class="text-sm font-semibold text-white/70">—</p>
+          </div>
+        </div>
+        <p id="error-amigo-nome" class="error-msg hidden mb-3" role="alert"></p>
+        <div class="flex gap-3">
+          <button id="btn-cancelar-amigo" class="btn-secondary flex-1" aria-label="Cancelar">Cancelar</button>
+          <button id="btn-salvar-amigo" class="btn-primary flex-1" aria-label="Salvar amigo">Salvar</button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Toast de feedback -->
+  <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- Modal de confirmação -->
+  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full">
+      <h3 id="confirm-modal-title" class="text-lg font-bold mb-2"></h3>
+      <p id="confirm-modal-body" class="text-white/60 text-sm mb-6"></p>
+      <div class="flex gap-3">
+        <button id="confirm-modal-cancel" class="btn-secondary flex-1" aria-label="Cancelar ação">Cancelar</button>
+        <button id="confirm-modal-confirm" class="btn-danger flex-1" aria-label="Confirmar ação">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de badge desbloqueado -->
+  <div id="badge-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="badge-modal-title">
+    <div class="bg-bg-card border border-primary/40 rounded-2xl p-8 max-w-xs w-full text-center badge-unlock-animation">
+      <div id="badge-modal-emoji" class="text-6xl mb-4"></div>
+      <p class="text-primary-light text-xs font-bold uppercase tracking-widest mb-1">Badge desbloqueado!</p>
+      <h3 id="badge-modal-title" class="text-xl font-bold mb-2"></h3>
+      <p id="badge-modal-desc" class="text-white/60 text-sm mb-6"></p>
+      <button id="btn-close-badge" class="btn-primary w-full" aria-label="Fechar notificação de badge">
+        Arrasou! 🎉
+      </button>
+    </div>
+  </div>
+
+  <script src="./js/script.js"></script>
+</body>
+</html>
