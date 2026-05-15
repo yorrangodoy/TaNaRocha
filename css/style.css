@@ -643,6 +643,14 @@ body {
   border-radius: 4px;
 }
 
+.onboarding-logo {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
+  margin: 0 auto 16px auto;
+  display: block;
+}
+
 /* Previne zoom em inputs no iOS — [H6] Mobile-first */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
   input[type="text"],
