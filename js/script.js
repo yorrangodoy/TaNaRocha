@@ -18,7 +18,10 @@ const AppState = {
     mode: null,        // 'individual' | 'total'
     totalValue: 0,
     paidStatus: {},    // { participantId: boolean }
+    categoria: 'outro',// ID da categoria selecionada
   },
+  // Filtro ativo no histórico
+  historicoCategoriaFiltro: 'todas',
   // Histórico persistido
   history: [],         // [ SessionRecord ]
   // Perfis de participantes persistentes
@@ -44,6 +47,22 @@ const AVATAR_COLORS = [
   '#7C3AED', '#A855F7', '#EC4899', '#F59E0B',
   '#10B981', '#3B82F6', '#EF4444', '#14B8A6',
 ];
+
+// [H5] Categorias de evento — sempre tem padrão "outro"
+const CATEGORIES = [
+  { id: 'bar',      icon: '🍺', nome: 'Bar',      cor: '#F59E0B' },
+  { id: 'comida',   icon: '🍕', nome: 'Comida',   cor: '#EF4444' },
+  { id: 'viagem',   icon: '✈️', nome: 'Viagem',   cor: '#3B82F6' },
+  { id: 'gasolina', icon: '⛽', nome: 'Gasolina', cor: '#10B981' },
+  { id: 'mercado',  icon: '🛒', nome: 'Mercado',  cor: '#A855F7' },
+  { id: 'festa',    icon: '🎉', nome: 'Festa',    cor: '#EC4899' },
+  { id: 'lazer',    icon: '🎬', nome: 'Lazer',    cor: '#14B8A6' },
+  { id: 'outro',    icon: '📦', nome: 'Outro',    cor: '#6B7280' },
+];
+
+function getCategoryById(id) {
+  return CATEGORIES.find(c => c.id === id) || CATEGORIES[CATEGORIES.length - 1];
+}
 
 // -----------------------------------------------
 // UTILITÁRIOS
@@ -72,29 +91,52 @@ function showToast(msg, type = 'info', duration = 2800) {
   }, duration);
 }
 
-/** Exibe modal de confirmação. [H5] Confirma antes de ação destrutiva */
+// -----------------------------------------------
+// BOTTOM SHEETS — [H4] padrão mobile-native
+// -----------------------------------------------
+
+function openSheet(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeSheet(id) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+}
+
+/** Exibe bottom sheet de confirmação. [H5] Confirma antes de ação destrutiva */
 function confirmModal(title, body) {
   return new Promise(resolve => {
-    const modal = document.getElementById('confirm-modal');
+    const sheet = document.getElementById('confirm-modal');
     document.getElementById('confirm-modal-title').textContent = title;
     document.getElementById('confirm-modal-body').textContent  = body;
-    modal.classList.remove('hidden');
+    openSheet('confirm-modal');
 
     const btnOk     = document.getElementById('confirm-modal-confirm');
     const btnCancel = document.getElementById('confirm-modal-cancel');
 
     function cleanup(result) {
-      modal.classList.add('hidden');
+      closeSheet('confirm-modal');
       btnOk.removeEventListener('click', onOk);
       btnCancel.removeEventListener('click', onCancel);
+      sheet.removeEventListener('click', onBackdrop);
       resolve(result);
     }
 
-    const onOk     = () => cleanup(true);
-    const onCancel = () => cleanup(false);
+    const onOk       = () => cleanup(true);
+    const onCancel   = () => cleanup(false);
+    const onBackdrop = (e) => { if (e.target === sheet) cleanup(false); };
 
     btnOk.addEventListener('click', onOk);
     btnCancel.addEventListener('click', onCancel);
+    sheet.addEventListener('click', onBackdrop);
   });
 }
 
@@ -102,14 +144,32 @@ function confirmModal(title, body) {
 // NAVEGAÇÃO ENTRE TELAS
 // -----------------------------------------------
 
-/** Mostra uma tela, esconde as demais. [H1] Atualiza barra de progresso */
-function showScreen(screenId) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+/** Mostra uma tela com transição direcional. [H4] Consistência — todas as navegações usam o mesmo padrão */
+function showScreen(screenId, direction = 'forward') {
   const target = document.getElementById(screenId);
-  if (target) {
-    target.classList.remove('hidden');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }
+  if (!target) return;
+
+  // Remove animação anterior para forçar reinício
+  target.style.animation = 'none';
+  target.classList.remove('hidden');
+  void target.offsetWidth; // reflow
+
+  // [H4] Slide direcional — avançar entra da direita, voltar entra da esquerda
+  const animClass = direction === 'back' ? 'screen-slide-back' : 'screen-slide-forward';
+  target.classList.add(animClass);
+  target.addEventListener('animationend', () => {
+    target.classList.remove(animClass);
+    target.style.animation = '';
+  }, { once: true });
+
+  // Esconde as demais após um frame (evita flash)
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.screen').forEach(s => {
+      if (s !== target) s.classList.add('hidden');
+    });
+  });
+
+  window.scrollTo({ top: 0, behavior: 'instant' });
   updateProgressBar(screenId);
 }
 
@@ -179,6 +239,7 @@ function clearSession() {
     mode: null,
     totalValue: 0,
     paidStatus: {},
+    categoria: 'outro',
   };
   localStorage.removeItem(LS_SESSION);
 }
@@ -280,6 +341,7 @@ function initNovaSessao() {
   inputEvent.classList.remove('error');
 
   renderParticipantList();
+  renderCategoryGrid();  // [H5] Grid de categorias com padrão selecionado
   renderChipsSugestao(); // [H7] Chips de sugestão
   updateAvancarButton();
 }
@@ -372,6 +434,35 @@ function renderParticipantList() {
       </button>
     </li>
   `).join('');
+}
+
+/** Renderiza grid de categorias na tela de nova sessão
+ * [H5] Sempre há uma categoria padrão selecionada ("outro") */
+function renderCategoryGrid() {
+  const container = document.getElementById('category-grid');
+  if (!container) return;
+
+  container.innerHTML = CATEGORIES.map(cat => {
+    const selected = AppState.session.categoria === cat.id;
+    return `
+      <button
+        class="cat-card ${selected ? 'selected' : ''}"
+        onclick="setCategoria('${cat.id}')"
+        aria-pressed="${selected}"
+        aria-label="Categoria ${cat.nome}"
+        style="${selected ? `--cat-color:${cat.cor};` : ''}"
+      >
+        <span class="text-xl" aria-hidden="true">${cat.icon}</span>
+        <span class="text-xs font-semibold mt-0.5">${cat.nome}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+function setCategoria(id) {
+  AppState.session.categoria = id;
+  saveSession();
+  renderCategoryGrid();
 }
 
 /** [H7] Chips de sugestão de amigos cadastrados, com filtro por digitação */
@@ -544,7 +635,7 @@ function initIndividual() {
     if (ok) {
       clearSession();
       initHome();
-      showScreen('screen-home');
+      showScreen('screen-home', 'back');
     }
   };
 
@@ -788,7 +879,7 @@ function initTotal() {
 
   document.getElementById('btn-cancelar-total').onclick = async () => {
     const ok = await confirmModal('Cancelar sessão?', 'Tem certeza? Os dados serão perdidos.');
-    if (ok) { clearSession(); initHome(); showScreen('screen-home'); }
+    if (ok) { clearSession(); initHome(); showScreen('screen-home', 'back'); }
   };
 
   document.getElementById('btn-fechar-total').onclick = () => {
@@ -829,14 +920,17 @@ function renderResultado() {
 
   // Botão voltar do resultado
   document.getElementById('btn-back-resultado').onclick = () => {
-    showScreen(mode === 'individual' ? 'screen-individual' : 'screen-total');
+    showScreen(mode === 'individual' ? 'screen-individual' : 'screen-total', 'back');
   };
 
   const balances  = calcBalances();
   const transfers = calcTransfers(balances);
   const grandTotal = balances.reduce((s, b) => s + b.spent, 0);
 
-  document.getElementById('resultado-total').textContent = formatBRL(grandTotal);
+  // [H1] Contador animado — percepção de cálculo em tempo real
+  const totalEl = document.getElementById('resultado-total');
+  totalEl.textContent = formatBRL(0);
+  animateNumber(totalEl, 0, grandTotal, 700, true);
 
   renderBalances(balances);
   renderTransfers(transfers);
@@ -849,7 +943,7 @@ function renderResultado() {
     finalizeSession(balances, grandTotal);
     clearSession();
     initHome();
-    showScreen('screen-home');
+    showScreen('screen-home', 'back');
   };
 }
 
@@ -995,6 +1089,7 @@ function finalizeSession(balances, grandTotal) {
     date:        new Date().toLocaleDateString('pt-BR'),
     dateISO:     new Date().toISOString(),
     mode:        AppState.session.mode,
+    categoria:   AppState.session.categoria || 'outro',
     grandTotal,
     isDemo:      false,
     participants: balances.map(b => ({
@@ -1042,29 +1137,65 @@ function renderHistorico() {
   const badgesList = document.getElementById('badges-list');
   const badgesEmpty = document.getElementById('badges-empty');
 
+  // [H7] Filtro de categorias — chips com scroll horizontal
+  const categoriasFiltroEl = document.getElementById('historico-categoria-filtro');
+  if (categoriasFiltroEl) {
+    const countAll = AppState.history.length;
+    const chipsHTML = [
+      `<button class="cat-filter-chip ${AppState.historicoCategoriaFiltro === 'todas' ? 'active' : ''}"
+        onclick="setHistoricoFiltro('todas')" aria-pressed="${AppState.historicoCategoriaFiltro === 'todas'}">
+        Todas (${countAll})
+      </button>`,
+      ...CATEGORIES.map(cat => {
+        const count = AppState.history.filter(h => (h.categoria || 'outro') === cat.id).length;
+        if (count === 0) return '';
+        return `<button class="cat-filter-chip ${AppState.historicoCategoriaFiltro === cat.id ? 'active' : ''}"
+          onclick="setHistoricoFiltro('${cat.id}')" aria-pressed="${AppState.historicoCategoriaFiltro === cat.id}"
+          style="${AppState.historicoCategoriaFiltro === cat.id ? `--cat-color:${cat.cor};` : ''}">
+          ${cat.icon} ${cat.nome} (${count})
+        </button>`;
+      }),
+    ].filter(Boolean).join('');
+    categoriasFiltroEl.innerHTML = chipsHTML;
+  }
+
+  // Filtra registros pela categoria ativa
+  const registrosFiltrados = AppState.historicoCategoriaFiltro === 'todas'
+    ? AppState.history
+    : AppState.history.filter(h => (h.categoria || 'outro') === AppState.historicoCategoriaFiltro);
+
   // Histórico
-  if (AppState.history.length === 0) {
+  if (registrosFiltrados.length === 0) {
     list.innerHTML = '';
     emptyEl.classList.remove('hidden');
   } else {
     emptyEl.classList.add('hidden');
-    list.innerHTML = AppState.history.map(record => `
-      <div class="history-card" role="listitem" aria-label="${escapeHTML(record.eventName)}, ${record.date}">
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-bold text-sm">${escapeHTML(record.eventName)}</span>
-          <span class="text-xs text-white/40">${record.date}</span>
-        </div>
-        <div class="flex items-center justify-between">
-          <span class="text-xs text-white/50">${record.participants.length} pessoas · ${record.mode === 'total' ? 'Modo Total' : 'Modo Individual'}</span>
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-primary-light text-sm">${formatBRL(record.grandTotal)}</span>
-            <span class="badge-status ${record.status === 'quitada' ? 'badge-paid' : 'badge-pending'}" style="font-size:0.65rem;">
-              ${record.status === 'quitada' ? '✅ Quitada' : '⏳ Pendente'}
-            </span>
+    list.innerHTML = registrosFiltrados.map(record => {
+      const cat = getCategoryById(record.categoria || 'outro');
+      return `
+        <div class="history-card" role="article" aria-label="${escapeHTML(record.eventName)}, ${record.date}">
+          <div class="flex items-center gap-3">
+            <!-- Ícone de categoria -->
+            <div class="cat-icon-circle" style="background-color:${cat.cor}20; color:${cat.cor};" aria-hidden="true">${cat.icon}</div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between mb-0.5">
+                <span class="font-bold text-sm truncate">${escapeHTML(record.eventName)}</span>
+                <span class="text-xs text-white/40 ml-2 flex-shrink-0">${record.date}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-xs text-white/50">${record.participants.length} pessoas · ${record.mode === 'total' ? 'Modo Total' : 'Individual'}</span>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                  <span class="font-bold text-primary-light text-sm">${formatBRL(record.grandTotal)}</span>
+                  <span class="badge-status ${record.status === 'quitada' ? 'badge-paid' : 'badge-pending'}" style="font-size:0.65rem;">
+                    ${record.status === 'quitada' ? '✅ Quitada' : '⏳ Pendente'}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    `).join('');
+      `;
+    }).join('');
   }
 
   // Badges / Ranking
@@ -1100,6 +1231,11 @@ function renderHistorico() {
       showToast('🗑️ Histórico apagado', 'info');
     }
   };
+}
+
+function setHistoricoFiltro(categoriaId) {
+  AppState.historicoCategoriaFiltro = categoriaId;
+  renderHistorico();
 }
 
 // -----------------------------------------------
@@ -1183,12 +1319,35 @@ function showBadgeModal(badge) {
   document.getElementById('badge-modal-title').textContent = `${badge.title} — ${badge.person}`;
   document.getElementById('badge-modal-desc').textContent  = badge.desc;
 
-  const modal = document.getElementById('badge-modal');
-  modal.classList.remove('hidden');
+  // [H1] Feedback visual imediato — confete ao desbloquear badge
+  showConfetti();
+  openSheet('badge-modal');
 
   document.getElementById('btn-close-badge').onclick = () => {
-    modal.classList.add('hidden');
+    closeSheet('badge-modal');
+    stopConfetti();
   };
+}
+
+/** Animação de confete em CSS puro — 12 elementos absolutamente posicionados
+ *  [H1] Feedback visual imediato pra cada ação relevante */
+function showConfetti() {
+  const container = document.getElementById('confetti-container');
+  if (!container) return;
+
+  const colors = ['#7C3AED','#A855F7','#EC4899','#F59E0B','#10B981','#3B82F6','#EF4444','#14B8A6'];
+  container.innerHTML = Array.from({ length: 14 }, (_, i) => {
+    const color = colors[i % colors.length];
+    const left  = 5 + (i / 13) * 90; // distribuídos em 5%..95% da largura
+    const delay = (i * 0.12).toFixed(2);
+    const size  = 6 + (i % 3) * 3;
+    return `<div class="confetti-piece" style="left:${left}%;background:${color};width:${size}px;height:${size}px;animation-delay:${delay}s;"></div>`;
+  }).join('');
+}
+
+function stopConfetti() {
+  const container = document.getElementById('confetti-container');
+  if (container) container.innerHTML = '';
 }
 
 // -----------------------------------------------
@@ -1258,9 +1417,8 @@ async function removeAmigo(id, event) {
   showToast(`👋 ${friend.nome} removido`, 'info');
 }
 
-/** Abre modal de adicionar amigo */
+/** Abre sheet de adicionar amigo */
 function openAddAmigoModal() {
-  const modal    = document.getElementById('modal-amigo');
   const inputNome = document.getElementById('input-amigo-nome');
   const errEl    = document.getElementById('error-amigo-nome');
   const preview  = document.getElementById('preview-avatar');
@@ -1271,8 +1429,8 @@ function openAddAmigoModal() {
   preview.textContent  = '?';
   preview.style.backgroundColor = '#2e2e2e';
   previewNome.textContent = '—';
-  modal.classList.remove('hidden');
-  setTimeout(() => inputNome.focus(), 80);
+  openSheet('modal-amigo');
+  setTimeout(() => inputNome.focus(), 120);
 
   // Atualiza preview em tempo real
   inputNome.oninput = () => {
@@ -1297,7 +1455,7 @@ function openAddAmigoModal() {
 }
 
 function closeAddAmigoModal() {
-  document.getElementById('modal-amigo').classList.add('hidden');
+  closeSheet('modal-amigo');
 }
 
 function saveNewAmigo() {
@@ -1340,15 +1498,20 @@ const DEMO_FRIENDS = [
   { nome: 'Lucas Oliveira',payRate: 1.0  },
 ];
 
+// [DEMO] Categorias distribuídas de forma realista (mais bar e comida, menos viagem)
 const DEMO_SESSIONS = [
-  { nome: 'Bar da Sexta',        modo: 'total',      total: 148,  participantes: [0,1,2,3],  diasAtras: 3  },
-  { nome: 'Churrasco do João',   modo: 'individual', total: 320,  participantes: [0,1,2,3,4],diasAtras: 10 },
-  { nome: 'Viagem Floripa',      modo: 'total',      total: 380,  participantes: [0,1,2,3],  diasAtras: 22 },
-  { nome: 'Pizza domingo',       modo: 'total',      total: 96,   participantes: [0,1,4],    diasAtras: 35 },
-  { nome: 'Gasolina Curitiba',   modo: 'individual', total: 180,  participantes: [0,2,3],    diasAtras: 45 },
-  { nome: 'Aniversário Maria',   modo: 'total',      total: 215,  participantes: [0,1,2,3,4],diasAtras: 58 },
-  { nome: 'Boteco quarta',       modo: 'total',      total: 75,   participantes: [1,2,3],    diasAtras: 70 },
-  { nome: 'Hamburgueria',        modo: 'individual', total: 132,  participantes: [0,1,3],    diasAtras: 85 },
+  { nome: 'Bar da Sexta',        modo: 'total',      total: 148,  participantes: [0,1,2,3],   diasAtras: 3,   categoria: 'bar'      },
+  { nome: 'Churrasco do João',   modo: 'individual', total: 320,  participantes: [0,1,2,3,4], diasAtras: 10,  categoria: 'comida'   },
+  { nome: 'Viagem Floripa',      modo: 'total',      total: 380,  participantes: [0,1,2,3],   diasAtras: 22,  categoria: 'viagem'   },
+  { nome: 'Pizza domingo',       modo: 'total',      total: 96,   participantes: [0,1,4],     diasAtras: 35,  categoria: 'comida'   },
+  { nome: 'Gasolina Curitiba',   modo: 'individual', total: 180,  participantes: [0,2,3],     diasAtras: 45,  categoria: 'gasolina' },
+  { nome: 'Aniversário Maria',   modo: 'total',      total: 215,  participantes: [0,1,2,3,4], diasAtras: 58,  categoria: 'festa'    },
+  { nome: 'Boteco quarta',       modo: 'total',      total: 75,   participantes: [1,2,3],     diasAtras: 70,  categoria: 'bar'      },
+  { nome: 'Hamburgueria',        modo: 'individual', total: 132,  participantes: [0,1,3],     diasAtras: 85,  categoria: 'comida'   },
+  { nome: 'Mercado do mês',      modo: 'total',      total: 245,  participantes: [0,1,2],     diasAtras: 95,  categoria: 'mercado'  },
+  { nome: 'Show de Rock',        modo: 'total',      total: 160,  participantes: [1,2,3,4],   diasAtras: 108, categoria: 'lazer'    },
+  { nome: 'Racha da gasolina',   modo: 'individual', total: 90,   participantes: [0,2,4],     diasAtras: 115, categoria: 'gasolina' },
+  { nome: 'Festa junina',        modo: 'total',      total: 188,  participantes: [0,1,2,3,4], diasAtras: 120, categoria: 'festa'    },
 ];
 
 async function activateDemoMode() {
@@ -1358,11 +1521,24 @@ async function activateDemoMode() {
   );
   if (!ok) return;
 
-  // Spinner visual
+  // Skeleton visual durante geração — [H1] carregamento percebido
   const btn = document.getElementById('btn-modo-demo');
+  const amigosList = document.getElementById('amigos-list');
   const original = btn.innerHTML;
   btn.innerHTML = '<span class="spinner"></span> Gerando...';
   btn.disabled = true;
+
+  if (amigosList) {
+    amigosList.innerHTML = Array.from({ length: 4 }, () => `
+      <div class="skeleton-card skeleton flex items-center gap-3 px-4 py-3">
+        <div class="skeleton avatar-circle lg" style="background:none;border:none;"></div>
+        <div class="flex-1">
+          <div class="skeleton skeleton-line medium mb-2"></div>
+          <div class="skeleton skeleton-line short"></div>
+        </div>
+      </div>
+    `).join('');
+  }
 
   // Simula processamento (~1.5s) para parecer real — [DEMO]
   await new Promise(r => setTimeout(r, 1500));
@@ -1409,6 +1585,7 @@ async function activateDemoMode() {
       date:        dateObj.toLocaleDateString('pt-BR'),
       dateISO:     dateObj.toISOString(),
       mode:        ds.modo,
+      categoria:   ds.categoria,
       grandTotal:  ds.total,
       isDemo:      true,
       participants: sessionParticipants,
@@ -1457,6 +1634,37 @@ async function clearDemoMode() {
 }
 
 // -----------------------------------------------
+// BANNER DE INSTALAÇÃO PWA — beforeinstallprompt
+// -----------------------------------------------
+
+function initInstallBanner() {
+  let deferredPrompt = null;
+  const banner  = document.getElementById('install-banner');
+  const btnInstall = document.getElementById('btn-install-pwa');
+  if (!banner || !btnInstall) return;
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    banner.classList.remove('hidden');
+  });
+
+  btnInstall.onclick = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    deferredPrompt = null;
+    banner.classList.add('hidden');
+    if (outcome === 'accepted') showToast('📲 App instalado com sucesso!', 'success');
+  };
+
+  window.addEventListener('appinstalled', () => {
+    banner.classList.add('hidden');
+    deferredPrompt = null;
+  });
+}
+
+// -----------------------------------------------
 // TOQUE LONGO NO LOGO — Ativa Modo Demo [DEMO]
 // -----------------------------------------------
 
@@ -1486,9 +1694,76 @@ function initBackButtons() {
     btn.onclick = () => {
       const target = btn.getAttribute('data-target');
       if (target === 'screen-home') initHome();
-      showScreen(target);
+      showScreen(target, 'back'); // [H4] voltar = slide da esquerda
     };
   });
+}
+
+// -----------------------------------------------
+// ANIMAÇÃO DE NÚMERO — [H1] contadores com easing
+// -----------------------------------------------
+
+/** Anima contagem de um valor até outro com easing out cubic */
+function animateNumber(element, start, end, duration = 650, isCurrency = false) {
+  const startTime = performance.now();
+  const range = end - start;
+
+  element.classList.add('animated-value', 'ticking');
+
+  function update(now) {
+    const elapsed  = now - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    const eased    = 1 - Math.pow(1 - progress, 3); // cubic ease-out
+    const current  = start + range * eased;
+
+    if (isCurrency) {
+      element.textContent = new Intl.NumberFormat('pt-BR', {
+        style: 'currency', currency: 'BRL',
+      }).format(current);
+    } else {
+      element.textContent = Math.round(current).toString();
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(update);
+    } else {
+      element.classList.remove('ticking');
+    }
+  }
+
+  requestAnimationFrame(update);
+}
+
+// -----------------------------------------------
+// RIPPLE EFFECT — [H1] feedback tátil visual
+// -----------------------------------------------
+
+function attachRipple(el) {
+  if (el._rippleAttached) return;
+  el._rippleAttached = true;
+  el.addEventListener('click', (e) => {
+    const ripple = document.createElement('span');
+    ripple.className = 'ripple';
+    const rect = el.getBoundingClientRect();
+    const size = Math.max(rect.width, rect.height);
+    ripple.style.width  = ripple.style.height = `${size}px`;
+    ripple.style.left   = `${e.clientX - rect.left - size / 2}px`;
+    ripple.style.top    = `${e.clientY - rect.top  - size / 2}px`;
+    el.appendChild(ripple);
+    setTimeout(() => ripple.remove(), 620);
+  });
+}
+
+function initRipple() {
+  document.querySelectorAll('button').forEach(attachRipple);
+  // Aplica a botões gerados dinamicamente
+  new MutationObserver(mutations => {
+    mutations.forEach(m => m.addedNodes.forEach(node => {
+      if (node.nodeType !== 1) return;
+      if (node.tagName === 'BUTTON') attachRipple(node);
+      node.querySelectorAll?.('button').forEach(attachRipple);
+    }));
+  }).observe(document.body, { childList: true, subtree: true });
 }
 
 // -----------------------------------------------
@@ -1496,6 +1771,9 @@ function initBackButtons() {
 // -----------------------------------------------
 
 function init() {
+  // [H1] Remove splash após animação (1.7s = 1.2s delay + 0.5s exit)
+  setTimeout(() => document.getElementById('splash-screen')?.remove(), 1700);
+
   loadFriends();  // carrega perfis de participantes
   loadHistory();
   loadSession();
@@ -1571,6 +1849,8 @@ function init() {
 
   initBackButtons();
   initLogoLongPress(); // toque longo para Modo Demo
+  initInstallBanner(); // [PWA] banner de instalação
+  initRipple();        // [H1] ripple feedback em botões
   initHome();
   showScreen('screen-home');
 }
@@ -1587,5 +1867,7 @@ window.togglePaid           = togglePaid;
 window.showScreen           = showScreen;
 window.addParticipant       = addParticipant;
 window.removeAmigo          = removeAmigo;
+window.setCategoria         = setCategoria;
+window.setHistoricoFiltro   = setHistoricoFiltro;
 
 document.addEventListener('DOMContentLoaded', init);

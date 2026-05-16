@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>TaNaRocha — Rachadinha? Só da conta.</title>
 
   <!-- SEO + WhatsApp / Open Graph -->
@@ -15,6 +15,7 @@
 
   <!-- PWA Básico -->
   <link rel="manifest" href="./manifest.json" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="TaNaRocha" />
@@ -51,6 +52,15 @@
 </head>
 <body class="bg-bg text-white font-sans min-h-screen">
 
+  <!-- [H1] Splash screen — feedback de carregamento percebido -->
+  <div id="splash-screen" class="splash" aria-hidden="true">
+    <img src="./assets/logo-tanarocha.png" alt="" class="splash-logo" />
+    <div class="splash-tagline">Rachadinha? Só da conta.</div>
+  </div>
+
+  <!-- [A11Y] Skip link — pula direto para o conteúdo principal -->
+  <a href="#app" class="skip-link">Pular para o conteúdo</a>
+
   <!-- [H1] Barra de progresso de etapas — sempre visível durante o fluxo -->
   <div id="progress-bar-container" class="hidden fixed top-0 left-0 right-0 z-50 bg-bg-card border-b border-white/10">
     <div class="max-w-lg mx-auto px-4 py-2">
@@ -75,7 +85,7 @@
       <!-- [H10] Onboarding na primeira abertura -->
       <div id="onboarding-overlay" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
         <div class="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full" role="dialog" aria-modal="true" aria-labelledby="onboarding-title">
-          <img src="./assets/logo-tanarocha.png" alt="TaNaRocha" class="onboarding-logo" />
+          <img src="./assets/logo-tanarocha.png" alt="TaNaRocha" class="onboarding-logo" loading="lazy" decoding="async" />
           <h2 id="onboarding-title" class="text-xl font-bold text-center mb-2">Bem-vindo ao TaNaRocha!</h2>
           <p class="text-white/60 text-sm text-center mb-6">
             Aqui você divide a conta entre amigos sem briga e sem drama. Cria uma sessão, lança o que cada um consumiu e o app calcula quem paga pra quem. Simple assim. 🙌
@@ -103,6 +113,20 @@
         />
         <!-- [H2] Microcopy em linguagem natural brasileira -->
         <p class="text-white/50 text-sm mt-3 font-medium">Rachadinha? Só da conta.</p>
+      </div>
+
+      <!-- Banner de instalação PWA — visível apenas quando disponível -->
+      <div id="install-banner" class="hidden w-full mb-4" role="complementary" aria-label="Instalar TaNaRocha">
+        <div class="card border-primary/30 flex items-center gap-3 py-3">
+          <div class="text-2xl flex-shrink-0" aria-hidden="true">📲</div>
+          <div class="flex-1 min-w-0">
+            <p class="text-sm font-bold leading-tight">Instalar como app</p>
+            <p class="text-xs text-white/50 mt-0.5">Acesse na tela inicial, sem navegador</p>
+          </div>
+          <button id="btn-install-pwa" class="btn-primary text-sm py-2 px-4 flex-shrink-0" aria-label="Instalar TaNaRocha na tela inicial">
+            Instalar
+          </button>
+        </div>
       </div>
 
       <!-- Botões de ação -->
@@ -157,6 +181,14 @@
         <p id="error-event-name" class="error-msg hidden" role="alert" aria-live="polite">
           ⚠️ Coloca um nome pro evento aí
         </p>
+      </div>
+
+      <!-- Categoria do evento — [H5] grid com padrão pré-selecionado -->
+      <div class="card mb-4">
+        <label class="block text-sm font-semibold text-white/70 mb-3">Categoria</label>
+        <div id="category-grid" class="grid grid-cols-4 gap-2" role="group" aria-label="Categoria do evento">
+          <!-- preenchido via JS por renderCategoryGrid() -->
+        </div>
       </div>
 
       <!-- Adicionar participantes -->
@@ -436,13 +468,40 @@
           </button>
         </div>
 
+        <!-- Filtro por categoria — [H5] chips com scroll horizontal -->
+        <div
+          id="historico-categoria-filtro"
+          class="flex gap-2 overflow-x-auto pb-2 mb-3"
+          role="group"
+          aria-label="Filtrar rachadas por categoria"
+          style="scrollbar-width:none;"
+        >
+          <!-- preenchido via JS por renderHistorico() -->
+        </div>
+
         <div id="historico-list" class="space-y-3" role="list" aria-label="Lista de sessões anteriores"></div>
 
-        <!-- [H10] Estado vazio com instrução -->
-        <div id="historico-empty" class="hidden text-center py-12">
-          <div class="text-4xl mb-3">🪨</div>
-          <p class="text-white/40 text-sm">Nenhuma rachada ainda. Bora sair? 🍺</p>
-          <button class="btn-primary mt-4" data-target-screen="screen-home" onclick="showScreen('screen-home')" aria-label="Criar primeira rachada">
+        <!-- [H10] Estado vazio com SVG ilustrado -->
+        <div id="historico-empty" class="hidden empty-state">
+          <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="60" cy="60" r="50" fill="#1A1A1A"/>
+            <circle cx="60" cy="60" r="50" fill="url(#grad1)" opacity="0.4"/>
+            <defs>
+              <radialGradient id="grad1" cx="50%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#7C3AED" stop-opacity="0.3"/>
+                <stop offset="100%" stop-color="#7C3AED" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <path d="M38 65 L52 79 L82 49" stroke="#7C3AED" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.6"/>
+            <circle cx="60" cy="38" r="3" fill="#A855F7" opacity="0.7"/>
+            <circle cx="46" cy="52" r="2" fill="#A855F7" opacity="0.4"/>
+            <circle cx="74" cy="52" r="2" fill="#A855F7" opacity="0.4"/>
+            <circle cx="38" cy="42" r="1.5" fill="#7C3AED" opacity="0.3"/>
+            <circle cx="80" cy="38" r="1.5" fill="#7C3AED" opacity="0.3"/>
+          </svg>
+          <h3 class="empty-title">Nenhuma rachada ainda</h3>
+          <p class="empty-text">Bora sair com a galera e começar a rachar? 🍺</p>
+          <button class="btn-primary" onclick="showScreen('screen-home', 'back')" aria-label="Criar primeira rachada">
             Criar primeira rachada
           </button>
         </div>
@@ -464,10 +523,29 @@
       <!-- [H6] Reconhecimento — lista visual de amigos já cadastrados, sem precisar lembrar nomes -->
       <div id="amigos-list" class="space-y-3" role="list" aria-label="Lista de amigos cadastrados"></div>
 
-      <!-- [H10] Estado vazio -->
-      <div id="amigos-empty" class="hidden text-center py-12">
-        <div class="text-4xl mb-3">👥</div>
-        <p class="text-white/40 text-sm mb-4">Nenhum amigo cadastrado ainda.<br/>Bora chamar a galera? 👥</p>
+      <!-- [H10] Estado vazio com SVG ilustrado -->
+      <div id="amigos-empty" class="hidden empty-state">
+        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="60" cy="60" r="50" fill="#1A1A1A"/>
+          <circle cx="60" cy="60" r="50" fill="url(#grad2)" opacity="0.4"/>
+          <defs>
+            <radialGradient id="grad2" cx="50%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#A855F7" stop-opacity="0.25"/>
+              <stop offset="100%" stop-color="#A855F7" stop-opacity="0"/>
+            </radialGradient>
+          </defs>
+          <!-- pessoa da frente -->
+          <circle cx="60" cy="48" r="10" fill="#7C3AED" opacity="0.7"/>
+          <path d="M42 75 Q42 62 60 62 Q78 62 78 75" stroke="#7C3AED" stroke-width="3" fill="none" opacity="0.7" stroke-linecap="round"/>
+          <!-- pessoa esquerda -->
+          <circle cx="38" cy="52" r="7" fill="#A855F7" opacity="0.45"/>
+          <path d="M24 74 Q24 65 38 65 Q52 65 52 74" stroke="#A855F7" stroke-width="2.5" fill="none" opacity="0.4" stroke-linecap="round"/>
+          <!-- pessoa direita -->
+          <circle cx="82" cy="52" r="7" fill="#A855F7" opacity="0.45"/>
+          <path d="M68 74 Q68 65 82 65 Q96 65 96 74" stroke="#A855F7" stroke-width="2.5" fill="none" opacity="0.4" stroke-linecap="round"/>
+        </svg>
+        <h3 class="empty-title">Nenhum amigo ainda</h3>
+        <p class="empty-text">Cadastre sua galera e adicione rapidinho nas próximas rachadas.</p>
         <button id="btn-add-amigo-empty" class="btn-primary" aria-label="Adicionar primeiro amigo">
           Adicionar primeiro amigo
         </button>
@@ -494,15 +572,16 @@
       </div>
     </section>
 
-    <!-- Modal: Adicionar / Editar amigo -->
-    <div id="modal-amigo" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="modal-amigo-title">
-      <div class="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-        <h3 id="modal-amigo-title" class="text-lg font-bold mb-4">Novo Amigo</h3>
+    <!-- Bottom Sheet: Adicionar / Editar amigo — [H4] padrão mobile-native -->
+    <div id="modal-amigo" class="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="modal-amigo-title">
+      <div class="sheet">
+        <div class="sheet-handle"></div>
+        <h3 id="modal-amigo-title" class="sheet-title mb-4">Novo Amigo</h3>
         <label for="input-amigo-nome" class="block text-sm font-semibold text-white/70 mb-2">Nome</label>
         <input
           id="input-amigo-nome"
           type="text"
-          class="input-field w-full mb-2"
+          class="input-field w-full mb-3"
           placeholder="Ex: João Silva"
           maxlength="40"
           aria-required="true"
@@ -516,9 +595,9 @@
           </div>
         </div>
         <p id="error-amigo-nome" class="error-msg hidden mb-3" role="alert"></p>
-        <div class="flex gap-3">
-          <button id="btn-cancelar-amigo" class="btn-secondary flex-1" aria-label="Cancelar">Cancelar</button>
-          <button id="btn-salvar-amigo" class="btn-primary flex-1" aria-label="Salvar amigo">Salvar</button>
+        <div class="sheet-actions">
+          <button id="btn-cancelar-amigo" class="btn-secondary" aria-label="Cancelar">Cancelar</button>
+          <button id="btn-salvar-amigo" class="btn-primary" aria-label="Salvar amigo">Salvar</button>
         </div>
       </div>
     </div>
@@ -528,25 +607,29 @@
   <!-- Toast de feedback -->
   <div id="toast" class="toast hidden" role="status" aria-live="polite" aria-atomic="true"></div>
 
-  <!-- Modal de confirmação -->
-  <div id="confirm-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
-    <div class="bg-bg-card border border-white/10 rounded-2xl p-6 max-w-sm w-full">
-      <h3 id="confirm-modal-title" class="text-lg font-bold mb-2"></h3>
-      <p id="confirm-modal-body" class="text-white/60 text-sm mb-6"></p>
-      <div class="flex gap-3">
-        <button id="confirm-modal-cancel" class="btn-secondary flex-1" aria-label="Cancelar ação">Cancelar</button>
-        <button id="confirm-modal-confirm" class="btn-danger flex-1" aria-label="Confirmar ação">Confirmar</button>
+  <!-- Bottom Sheet de confirmação — [H4] padrão mobile-native -->
+  <div id="confirm-modal" class="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <div class="sheet">
+      <div class="sheet-handle"></div>
+      <h3 id="confirm-modal-title" class="sheet-title"></h3>
+      <p id="confirm-modal-body" class="sheet-description"></p>
+      <div class="sheet-actions">
+        <button id="confirm-modal-cancel" class="btn-secondary" aria-label="Cancelar ação">Cancelar</button>
+        <button id="confirm-modal-confirm" class="btn-danger" aria-label="Confirmar ação">Confirmar</button>
       </div>
     </div>
   </div>
 
-  <!-- Modal de badge desbloqueado -->
-  <div id="badge-modal" class="hidden fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="badge-modal-title">
-    <div class="bg-bg-card border border-primary/40 rounded-2xl p-8 max-w-xs w-full text-center badge-unlock-animation">
+  <!-- Bottom Sheet de badge desbloqueado — [H4] padrão mobile-native -->
+  <div id="badge-modal" class="sheet-backdrop" role="dialog" aria-modal="true" aria-labelledby="badge-modal-title">
+    <!-- Confete — [H1] feedback visual imediato -->
+    <div id="confetti-container" class="fixed inset-0 pointer-events-none overflow-hidden" aria-hidden="true" style="z-index:501;"></div>
+    <div class="sheet text-center badge-unlock-animation">
+      <div class="sheet-handle"></div>
       <div id="badge-modal-emoji" class="text-6xl mb-4"></div>
       <p class="text-primary-light text-xs font-bold uppercase tracking-widest mb-1">Badge desbloqueado!</p>
-      <h3 id="badge-modal-title" class="text-xl font-bold mb-2"></h3>
-      <p id="badge-modal-desc" class="text-white/60 text-sm mb-6"></p>
+      <h3 id="badge-modal-title" class="sheet-title"></h3>
+      <p id="badge-modal-desc" class="sheet-description"></p>
       <button id="btn-close-badge" class="btn-primary w-full" aria-label="Fechar notificação de badge">
         Arrasou! 🎉
       </button>
@@ -554,5 +637,14 @@
   </div>
 
   <script src="./js/script.js"></script>
+
+  <!-- [PWA] Registro do Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {});
+      });
+    }
+  </script>
 </body>
 </html>

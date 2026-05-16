@@ -5,6 +5,7 @@
    ============================================== */
 
 /* [H4] Padrão visual consistente — variáveis base */
+/* [DESIGN] Sistema de design unificado com escala harmônica */
 :root {
   --color-primary: #7C3AED;
   --color-primary-dark: #5B21B6;
@@ -17,6 +18,51 @@
   --radius-card: 1rem;
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
+
+  /* Tipografia — escala harmônica 1.25 ratio */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 16px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 32px;
+  --text-3xl: 48px;
+
+  /* Espaçamento — sistema 4px */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* Border radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Sombras — elevação suave */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 24px rgba(124, 58, 237, 0.35);
+
+  /* Easing — curvas naturais */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Durações padronizadas */
+  --duration-fast: 150ms;
+  --duration-base: 250ms;
+  --duration-slow: 400ms;
+  --duration-page: 320ms;
 }
 
 /* Reset e base */
@@ -24,13 +70,37 @@
 
 body {
   background-color: var(--color-bg);
+  background:
+    radial-gradient(at 15% 5%, rgba(124,58,237,0.12) 0%, transparent 45%),
+    radial-gradient(at 85% 95%, rgba(168,85,247,0.08) 0%, transparent 45%),
+    #0F0F0F;
+  background-attachment: fixed;
   color: #fff;
   font-family: 'Inter', sans-serif;
+  font-size: var(--text-base);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Impede scroll horizontal em mobile */
   overflow-x: hidden;
 }
+
+/* [DESIGN] Gradient mesh animado — profundidade sem peso */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(at 30% 30%, rgba(124,58,237,0.08) 0%, transparent 55%);
+  animation: gradient-drift 22s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes gradient-drift {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%       { transform: translate(18px, 12px) scale(1.03); }
+}
+
+main, .screen, #app { position: relative; z-index: 1; }
 
 /* ==============================================
    CARDS — [H8] Só o essencial em cada tela
@@ -40,6 +110,13 @@ body {
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: var(--radius-card);
   padding: 1.25rem;
+  transition: transform var(--duration-base) var(--ease-out),
+              box-shadow var(--duration-base) var(--ease-out);
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 /* ==============================================
@@ -591,13 +668,23 @@ body {
 
 .check-pop { animation: check-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
 
-/* Fade in de tela */
-@keyframes screen-in {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+/* [H4] Transições de tela — slide direcional */
+@keyframes screen-enter-right {
+  from { opacity: 0; transform: translateX(28px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-.screen:not(.hidden) { animation: screen-in 0.25s ease both; }
+@keyframes screen-enter-left {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* Aplicado via JS na navegação */
+.screen-slide-forward { animation: screen-enter-right var(--duration-page) var(--ease-out) both; }
+.screen-slide-back    { animation: screen-enter-left  280ms var(--ease-out) both; }
+
+/* Sem animação automática — JS controla */
+.screen:not(.hidden) { animation: none; }
 
 /* Shimmer de carregamento */
 @keyframes shimmer {
@@ -871,3 +958,359 @@ main#app {
   min-width: 32px;
   font-size: 0.65rem;
 }
+
+/* ==============================================
+   CATEGORIA — Grid de seleção (Tela 2)
+   ============================================== */
+.cat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  background-color: var(--color-bg-surface);
+  border: 2px solid rgba(255,255,255,0.08);
+  border-radius: 0.75rem;
+  padding: 0.625rem 0.375rem;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+  min-height: 60px;
+  color: #fff;
+}
+
+.cat-card:hover {
+  border-color: rgba(124,58,237,0.4);
+  background-color: rgba(124,58,237,0.08);
+}
+
+.cat-card:active { transform: scale(0.92); }
+
+.cat-card.selected {
+  border-color: var(--cat-color, var(--color-primary));
+  background-color: rgba(124,58,237,0.15);
+  box-shadow: 0 0 0 1px var(--cat-color, var(--color-primary));
+}
+
+/* ==============================================
+   CATEGORIA — Chips de filtro (Histórico)
+   ============================================== */
+.cat-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background-color: var(--color-bg-surface);
+  border: 1.5px solid rgba(255,255,255,0.1);
+  border-radius: 999px;
+  padding: 0.375rem 0.875rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background-color var(--transition-fast);
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.cat-filter-chip:hover {
+  border-color: rgba(124,58,237,0.4);
+  color: #fff;
+}
+
+.cat-filter-chip.active {
+  border-color: var(--cat-color, var(--color-primary));
+  background-color: rgba(124,58,237,0.15);
+  color: #fff;
+}
+
+/* Esconde scrollbar no filtro mas mantém funcionalidade */
+#historico-categoria-filtro::-webkit-scrollbar { display: none; }
+
+/* ==============================================
+   CATEGORIA — Ícone circular no card de histórico
+   ============================================== */
+.cat-icon-circle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 0.75rem;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* ==============================================
+   CONFETE — Badge Desbloqueado [H1]
+   ============================================== */
+@keyframes confetti-fall {
+  0%   { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  border-radius: 2px;
+  animation: confetti-fall 2.4s ease-in forwards;
+}
+
+/* ==============================================
+   SKIP LINK — [A11Y] Acessibilidade por teclado
+   ============================================== */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  background: var(--color-primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.875rem;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0 0 0.75rem 0.75rem;
+  z-index: 200;
+  transition: top var(--transition-fast);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.skip-link:focus {
+  top: 0;
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* ==============================================
+   FASE 4 — DESIGN POLISH
+   ============================================== */
+
+/* Tipografia hierárquica */
+h1 { font-size: var(--text-2xl); font-weight: 700; letter-spacing: -0.02em; line-height: 1.2; }
+h2 { font-size: var(--text-xl);  font-weight: 700; letter-spacing: -0.01em; line-height: 1.25; }
+h3 { font-size: var(--text-lg);  font-weight: 600; line-height: 1.3; }
+small { font-size: var(--text-sm); color: #9CA3AF; }
+
+/* ==============================================
+   SPLASH SCREEN — [H1] feedback de carregamento
+   ============================================== */
+.splash {
+  position: fixed;
+  inset: 0;
+  background: #0F0F0F;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: splash-exit 0.4s var(--ease-out) 1.2s forwards;
+}
+
+.splash-logo {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+  border-radius: 1.5rem;
+  filter: drop-shadow(0 0 32px rgba(124,58,237,0.5));
+  animation: splash-logo-in 0.7s var(--ease-spring) both;
+}
+
+.splash-tagline {
+  margin-top: var(--space-4);
+  font-size: var(--text-sm);
+  color: #6B7280;
+  font-weight: 500;
+  opacity: 0;
+  animation: splash-text-in 0.5s var(--ease-out) 0.35s forwards;
+}
+
+@keyframes splash-logo-in {
+  from { opacity: 0; transform: scale(0.75); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes splash-text-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes splash-exit {
+  to { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+/* ==============================================
+   BOTTOM SHEETS — [H4] padrão mobile-native
+   ============================================== */
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 500;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity var(--duration-base) var(--ease-out),
+              visibility var(--duration-base);
+}
+
+.sheet-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sheet {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  max-width: 512px;
+  margin: 0 auto;
+  background: #1C1C1C;
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  padding: var(--space-3) var(--space-5) calc(var(--space-8) + env(safe-area-inset-bottom));
+  transform: translateY(100%);
+  transition: transform var(--duration-slow) var(--ease-spring);
+  box-shadow: 0 -8px 40px rgba(0,0,0,0.6);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.sheet-backdrop.open .sheet {
+  transform: translateY(0);
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: rgba(255,255,255,0.15);
+  border-radius: var(--radius-full);
+  margin: 0 auto var(--space-5);
+}
+
+.sheet-title {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  margin-bottom: var(--space-2);
+  color: #fff;
+}
+
+.sheet-description {
+  font-size: var(--text-sm);
+  color: #9CA3AF;
+  margin-bottom: var(--space-6);
+  line-height: 1.55;
+}
+
+.sheet-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.sheet-actions button { flex: 1; min-height: 52px; }
+
+/* ==============================================
+   RIPPLE — [H1] feedback tátil visual
+   ============================================== */
+button { position: relative; overflow: hidden; }
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  pointer-events: none;
+  transform: scale(0);
+  animation: ripple-expand 600ms var(--ease-out);
+}
+
+@keyframes ripple-expand {
+  to { transform: scale(4); opacity: 0; }
+}
+
+/* ==============================================
+   SKELETON SCREENS — [H1] carregamento percebido
+   ============================================== */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-card {
+  height: 72px;
+  margin-bottom: var(--space-3);
+}
+
+.skeleton-line {
+  height: 14px;
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-2);
+}
+
+.skeleton-line.short  { width: 50%; }
+.skeleton-line.medium { width: 72%; }
+.skeleton-line.full   { width: 100%; }
+
+/* ==============================================
+   EMPTY STATES — [H10] estado vazio ilustrado
+   ============================================== */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-12) var(--space-5);
+  animation: empty-appear 0.5s var(--ease-out) both;
+}
+
+.empty-state svg {
+  margin-bottom: var(--space-5);
+  animation: empty-float 4s ease-in-out infinite;
+}
+
+.empty-title {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+  color: #fff;
+}
+
+.empty-text {
+  font-size: var(--text-sm);
+  color: #9CA3AF;
+  margin-bottom: var(--space-6);
+  max-width: 280px;
+  line-height: 1.5;
+}
+
+@keyframes empty-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes empty-appear {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ==============================================
+   NÚMERO ANIMADO — [H1] contagem de valores
+   ============================================== */
+.animated-value {
+  display: inline-block;
+  transition: transform 120ms var(--ease-spring);
+}
+
+.animated-value.ticking { transform: scale(1.05); }

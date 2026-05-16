@@ -1,12 +1,13 @@
 {
-  "name": "TaNaRocha",
+  "name": "TaNaRocha — Rachadinha? Só da conta",
   "short_name": "TaNaRocha",
   "description": "Divide a conta entre amigos sem briga e sem drama.",
-  "start_url": "./",
+  "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0F0F0F",
   "theme_color": "#7C3AED",
+  "categories": ["finance", "utilities", "social"],
   "lang": "pt-BR",
   "icons": [
     {
