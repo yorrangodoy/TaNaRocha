@@ -129,17 +129,32 @@
         </div>
       </div>
 
-      <!-- Botões de ação -->
-      <div class="w-full space-y-3">
-        <!-- [H4] Padrão visual consistente em todos os componentes — botão primário sempre roxo -->
-        <button id="btn-nova-rachada" class="btn-primary w-full text-lg py-4" aria-label="Criar nova sessão de racha">
-          🍺 Bora rachar?
+      <!-- [H4] Botão principal — CTA primário ocupa largura total -->
+      <button id="btn-nova-rachada" class="btn-primary w-full text-lg py-4 mb-4" aria-label="Criar nova sessão de racha">
+        🍺 Bora rachar?
+      </button>
+
+      <!-- [H8] Grid 2×2 de navegação — minimalista e visual -->
+      <div class="grid grid-cols-2 gap-3 w-full">
+        <button id="btn-podio" class="home-nav-card" aria-label="Ver pódio do grupo">
+          <span class="text-3xl" aria-hidden="true">🏆</span>
+          <span class="font-bold text-sm">Pódio da Galera</span>
+          <span id="podio-count-preview" class="text-xs text-white/40">—</span>
         </button>
-        <button id="btn-amigos" class="btn-secondary w-full text-lg py-4" aria-label="Ver e gerenciar amigos cadastrados">
-          👥 Meus Amigos
+        <button id="btn-confronto" class="home-nav-card" aria-label="Abrir confronto direto entre amigos">
+          <span class="text-3xl" aria-hidden="true">⚔️</span>
+          <span class="font-bold text-sm">Confronto</span>
+          <span class="text-xs text-white/40">Zoeira entre amigos</span>
         </button>
-        <button id="btn-historico" class="btn-secondary w-full text-lg py-4" aria-label="Ver histórico e ranking de participantes">
-          🏆 Histórico &amp; Ranking
+        <button id="btn-amigos" class="home-nav-card" aria-label="Ver e gerenciar amigos cadastrados">
+          <span class="text-3xl" aria-hidden="true">👥</span>
+          <span class="font-bold text-sm">Meus Amigos</span>
+          <span id="amigos-count-preview" class="text-xs text-white/40">—</span>
+        </button>
+        <button id="btn-historico" class="home-nav-card" aria-label="Ver histórico de rachadas">
+          <span class="text-3xl" aria-hidden="true">📜</span>
+          <span class="font-bold text-sm">Histórico</span>
+          <span id="historico-count-preview" class="text-xs text-white/40">—</span>
         </button>
       </div>
 
@@ -601,6 +616,122 @@
         </div>
       </div>
     </div>
+
+    <!-- =============================================
+         TELA 9: PÓDIO DA GALERA
+         ============================================= -->
+    <section id="screen-podio" class="screen hidden pt-20 pb-8" aria-label="Pódio da Galera">
+
+      <div class="flex items-center gap-3 mb-6">
+        <button class="btn-back" data-target="screen-home" aria-label="Voltar para a página inicial">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+        </button>
+        <div>
+          <h2 class="text-xl font-bold">🏆 Pódio da Galera</h2>
+          <p class="text-xs text-white/40">Quem manda na rachadinha</p>
+        </div>
+      </div>
+
+      <!-- [GAMIFICATION] Pódio visual top 3 — [H1] posição sempre visível -->
+      <div id="podio-container" class="mb-4"></div>
+
+      <!-- [H10] Empty state quando < 3 candidatos -->
+      <div id="podio-empty" class="hidden empty-state">
+        <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="60" cy="60" r="50" fill="#1A1A1A"/>
+          <rect x="45" y="68" width="30" height="20" rx="4" fill="#7C3AED" opacity="0.4"/>
+          <rect x="30" y="76" width="26" height="12" rx="4" fill="#7C3AED" opacity="0.25"/>
+          <rect x="64" y="72" width="26" height="16" rx="4" fill="#7C3AED" opacity="0.3"/>
+          <circle cx="60" cy="55" r="8" fill="#FFD700" opacity="0.5"/>
+          <circle cx="43" cy="62" r="6" fill="#C0C0C0" opacity="0.4"/>
+          <circle cx="77" cy="59" r="6" fill="#CD7F32" opacity="0.35"/>
+        </svg>
+        <h3 class="empty-title">Pódio incompleto</h3>
+        <p class="empty-text">Faça mais rachadas para ranquear a galera! Precisa de pelo menos 3 amigos com 3 sessões cada. 🍺</p>
+      </div>
+
+      <!-- Ranking completo do 4º em diante -->
+      <div>
+        <h3 class="text-sm font-bold text-white/60 uppercase tracking-widest mb-3">Ranking Completo</h3>
+        <div id="ranking-list" class="space-y-2" role="list" aria-label="Ranking completo de participantes"></div>
+      </div>
+    </section>
+
+    <!-- =============================================
+         TELA 10: CONFRONTO DIRETO
+         ============================================= -->
+    <section id="screen-confronto" class="screen hidden pt-20 pb-8" aria-label="Confronto Direto">
+
+      <!-- PASSO 1: Selecionar primeiro guerreiro -->
+      <div id="confronto-step1" class="confronto-step">
+        <div class="flex items-center gap-3 mb-6">
+          <button class="btn-back" data-target="screen-home" aria-label="Voltar para a página inicial">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h2 class="text-xl font-bold">⚔️ Confronto Direto</h2>
+            <p class="text-xs text-white/40">Escolha o primeiro guerreiro 🥊</p>
+          </div>
+        </div>
+        <div id="confronto-grid-1"><!-- preenchido via JS --></div>
+      </div>
+
+      <!-- PASSO 2: Selecionar oponente -->
+      <div id="confronto-step2" class="confronto-step hidden">
+        <div class="flex items-center gap-3 mb-4">
+          <button class="btn-back-step" onclick="initConfronto()" aria-label="Voltar para seleção do primeiro guerreiro">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <div>
+            <h2 class="text-xl font-bold">⚔️ Confronto Direto</h2>
+            <p class="text-xs text-white/40">Agora o oponente 🎯</p>
+          </div>
+        </div>
+        <div id="confronto-p1-preview"><!-- prévia do p1 selecionado --></div>
+        <div id="confronto-grid-2"><!-- preenchido via JS --></div>
+      </div>
+
+      <!-- PASSO 3: Arena e resultado -->
+      <div id="confronto-step3" class="confronto-step hidden">
+        <div class="flex items-center gap-3 mb-2">
+          <button class="btn-back-step" onclick="initConfronto()" aria-label="Trocar combatentes">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+          </button>
+          <h2 class="text-xl font-bold">⚔️ Confronto</h2>
+        </div>
+
+        <!-- Arena VS -->
+        <div class="confronto-arena">
+          <div id="arena-lado-p1" class="confronto-lado">
+            <div id="arena-p1-avatar"></div>
+            <p id="arena-p1-nome" class="confronto-lado-nome"></p>
+            <span id="arena-p1-score" class="confronto-score-pill"></span>
+          </div>
+          <div id="arena-vs" class="confronto-vs">VS</div>
+          <div id="arena-lado-p2" class="confronto-lado">
+            <div id="arena-p2-avatar"></div>
+            <p id="arena-p2-nome" class="confronto-lado-nome"></p>
+            <span id="arena-p2-score" class="confronto-score-pill"></span>
+          </div>
+        </div>
+
+        <!-- Cards de comparação — [GAMIFICATION] 7 dimensões de zoeira -->
+        <div id="confronto-cards" class="mb-2" role="list" aria-label="Comparação dos participantes"></div>
+
+        <!-- Veredito final -->
+        <div id="confronto-veredito"></div>
+
+        <!-- Ações -->
+        <div class="space-y-3">
+          <button id="btn-copiar-confronto" class="btn-secondary w-full" aria-label="Copiar resultado do confronto para WhatsApp">
+            📋 Copiar resultado pro WhatsApp
+          </button>
+          <button id="btn-trocar-combatentes" class="btn-primary w-full" aria-label="Escolher novos combatentes">
+            🔄 Trocar combatentes
+          </button>
+        </div>
+      </div>
+    </section>
 
   </main>
 

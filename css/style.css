@@ -205,6 +205,26 @@ main, .screen, #app { position: relative; z-index: 1; }
 .btn-back:active { transform: scale(0.92); }
 .btn-back:hover { background-color: #2e2e2e; }
 
+/* Botão de voltar interno ao confronto (entre steps) */
+.btn-back-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  min-width: 48px;
+  min-height: 48px;
+  background-color: var(--color-bg-surface);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 0.75rem;
+  color: #fff;
+  cursor: pointer;
+  transition: transform var(--transition-fast), background-color var(--transition-fast);
+  flex-shrink: 0;
+}
+.btn-back-step:active { transform: scale(0.92); }
+.btn-back-step:hover  { background-color: #2e2e2e; }
+
 /* ==============================================
    BOTÃO PERIGO — [H4] Sempre vermelho para destrutivo
    ============================================== */
@@ -1314,3 +1334,349 @@ button { position: relative; overflow: hidden; }
 }
 
 .animated-value.ticking { transform: scale(1.05); }
+
+/* ==============================================
+   FASE 5 — PÓDIO E CONFRONTO
+   ============================================== */
+
+/* [H8] Cards de navegação home — grid 2x2 */
+.home-nav-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  background: var(--color-bg-card);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5) var(--space-3);
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out),
+              border-color var(--duration-base),
+              box-shadow var(--duration-base);
+  min-height: 100px;
+  text-align: center;
+  color: #fff;
+}
+
+.home-nav-card:hover {
+  border-color: rgba(124,58,237,0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.15);
+}
+
+.home-nav-card:active { transform: scale(0.94); }
+
+/* ==============================================
+   PÓDIO — [GAMIFICATION] ranking visual do grupo
+   ============================================== */
+.podium-wrapper {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-6) 0 var(--space-2);
+}
+
+.podium-spot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  opacity: 0;
+  transform: translateY(40px);
+}
+
+.podium-spot.appear { animation: podium-rise 0.8s var(--ease-spring) forwards; }
+.podium-third.appear  { animation-delay: 0.1s; }
+.podium-second.appear { animation-delay: 0.3s; }
+.podium-first.appear  { animation-delay: 0.5s; }
+
+@keyframes podium-rise {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.podium-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.podium-avatar-wrap {
+  position: relative;
+  margin-bottom: var(--space-2);
+}
+
+.podium-medal {
+  position: absolute;
+  top: -6px;
+  right: -8px;
+  font-size: 18px;
+  z-index: 2;
+  line-height: 1;
+}
+
+.podium-name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.podium-score-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  margin-top: var(--space-1);
+}
+
+.podium-degrau {
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: var(--space-2);
+  font-size: var(--text-lg);
+  font-weight: 900;
+  color: rgba(255,255,255,0.4);
+}
+
+.podium-first  .podium-degrau { width: 100px; height: 80px; background: linear-gradient(to top, #3D2A00, #7A5500); }
+.podium-second .podium-degrau { width: 88px;  height: 56px; background: linear-gradient(to top, #222, #383838); }
+.podium-third  .podium-degrau { width: 88px;  height: 40px; background: linear-gradient(to top, #2A1A00, #4A2E00); }
+
+/* Avatares com bordas de medalha */
+.podium-first  .avatar-circle {
+  border: 3px solid #FFD700;
+  box-shadow: 0 0 20px rgba(255,215,0,0.45), 0 0 40px rgba(255,215,0,0.18);
+}
+
+.podium-second .avatar-circle {
+  border: 2px solid #C0C0C0;
+  box-shadow: 0 0 12px rgba(192,192,192,0.3);
+}
+
+.podium-third  .avatar-circle {
+  border: 2px solid #CD7F32;
+  box-shadow: 0 0 12px rgba(205,127,50,0.3);
+}
+
+.podium-first  .podium-score-badge { background: rgba(255,215,0,0.18);   color: #FFD700; }
+.podium-second .podium-score-badge { background: rgba(192,192,192,0.18); color: #C0C0C0; }
+.podium-third  .podium-score-badge { background: rgba(205,127,50,0.18);  color: #CD7F32; }
+
+/* Linha do ranking completo */
+.ranking-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: var(--color-bg-card);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  transition: border-color var(--duration-fast), transform var(--duration-fast);
+  min-height: 56px;
+}
+
+.ranking-row:hover {
+  border-color: rgba(124,58,237,0.3);
+  transform: translateX(4px);
+}
+
+.ranking-pos {
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: rgba(255,255,255,0.3);
+  width: 24px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* ==============================================
+   CONFRONTO — [GAMIFICATION] duelo entre amigos
+   ============================================== */
+.confronto-step.hidden { display: none; }
+
+.guerreiro-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+
+.guerreiro-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-bg-card);
+  border: 2px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-2);
+  cursor: pointer;
+  transition: border-color var(--duration-fast), transform var(--duration-fast), box-shadow var(--duration-base);
+  text-align: center;
+  color: #fff;
+}
+
+.guerreiro-card:hover {
+  border-color: rgba(124,58,237,0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(124,58,237,0.15);
+}
+
+.guerreiro-card:active { transform: scale(0.92); }
+
+.guerreiro-card.selected {
+  border-color: var(--color-primary);
+  background: rgba(124,58,237,0.12);
+  box-shadow: 0 0 0 1px var(--color-primary);
+}
+
+.guerreiro-card.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.guerreiro-nome {
+  font-size: 12px;
+  font-weight: 700;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Arena VS */
+.confronto-arena {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-6) 0 var(--space-4);
+}
+
+.confronto-lado {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+}
+
+.confronto-lado-nome {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  text-align: center;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.confronto-score-pill {
+  font-size: 13px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  background: rgba(255,255,255,0.06);
+}
+
+/* VS dramático com gradient pulsante */
+.confronto-vs {
+  font-size: var(--text-2xl);
+  font-weight: 900;
+  background: linear-gradient(135deg, #7C3AED, #EC4899);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: vs-pulse 2.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes vs-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.1); }
+}
+
+/* Cards de comparação */
+.confronto-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  background: var(--color-bg-card);
+  border: 1.5px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: 10px;
+  overflow: hidden;
+  animation: card-shine 0.5s var(--ease-out) both;
+}
+
+.confronto-icon { font-size: 28px; flex-shrink: 0; line-height: 1; }
+
+.confronto-text h3 {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.45;
+  margin-bottom: var(--space-1);
+  color: #fff;
+}
+
+.confronto-text p { font-size: 12px; color: rgba(255,255,255,0.4); }
+
+.confronto-card.winner-left {
+  border-color: rgba(124,58,237,0.45);
+  background: linear-gradient(135deg, rgba(124,58,237,0.1) 0%, transparent 65%);
+}
+
+.confronto-card.winner-right {
+  border-color: rgba(236,72,153,0.45);
+  background: linear-gradient(225deg, rgba(236,72,153,0.1) 0%, transparent 65%);
+}
+
+.confronto-card.draw { border-color: rgba(255,255,255,0.12); }
+
+@keyframes card-shine {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Veredito final */
+.veredito-card {
+  background: linear-gradient(135deg, rgba(124,58,237,0.2), rgba(168,85,247,0.1));
+  border: 1.5px solid rgba(124,58,237,0.4);
+  border-radius: var(--radius-lg);
+  padding: var(--space-5);
+  text-align: center;
+  margin-bottom: var(--space-3);
+}
+
+.veredito-placar {
+  font-size: var(--text-xl);
+  font-weight: 900;
+  margin: var(--space-2) 0;
+}
+
+/* Animações de entrada da arena */
+.arena-enter-left  { animation: slide-from-left  400ms var(--ease-out) both; }
+.arena-enter-right { animation: slide-from-right 400ms var(--ease-out) both; }
+.arena-vs-appear   { animation: vs-appear 500ms var(--ease-spring) 600ms both; opacity: 0; }
+
+@keyframes slide-from-left  {
+  from { opacity: 0; transform: translateX(-36px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes slide-from-right {
+  from { opacity: 0; transform: translateX(36px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes vs-appear {
+  from { opacity: 0; transform: scale(0.5) rotate(-10deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0); }
+}

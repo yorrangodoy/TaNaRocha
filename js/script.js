@@ -183,6 +183,8 @@ const PROGRESS_MAP = {
   'screen-resultado':   { step: 4, label: 'Etapa 4 de 4 — Resultado',            pct: 100 },
   'screen-historico':   { step: 0, label: 'Histórico & Ranking',                 pct: 0   },
   'screen-amigos':      { step: 0, label: 'Meus Amigos',                         pct: 0   },
+  'screen-podio':       { step: 0, label: 'Pódio da Galera',                     pct: 0   },
+  'screen-confronto':   { step: 0, label: 'Confronto Direto',                    pct: 0   },
 };
 
 function updateProgressBar(screenId) {
@@ -322,6 +324,27 @@ function initHome() {
   hint.textContent = AppState.history.length > 0
     ? `${AppState.history.length} rachada${AppState.history.length > 1 ? 's' : ''} no histórico`
     : 'Nenhuma rachada ainda. Bora sair? 🍺';
+
+  // Preenche contadores dos cards de navegação
+  const elegiveisParaPodio = AppState.friends.filter(f => f.estatisticas.totalSessoes > 0);
+  const podioPreview = document.getElementById('podio-count-preview');
+  if (podioPreview) {
+    podioPreview.textContent = elegiveisParaPodio.length >= 2
+      ? `${elegiveisParaPodio.length} ranqueados`
+      : 'sem dados';
+  }
+
+  const amigosPreview = document.getElementById('amigos-count-preview');
+  if (amigosPreview) {
+    const n = AppState.friends.length;
+    amigosPreview.textContent = n > 0 ? `${n} cadastrado${n !== 1 ? 's' : ''}` : 'nenhum ainda';
+  }
+
+  const historicoPreview = document.getElementById('historico-count-preview');
+  if (historicoPreview) {
+    const n = AppState.history.length;
+    historicoPreview.textContent = n > 0 ? `${n} rachada${n !== 1 ? 's' : ''}` : 'vazio';
+  }
 }
 
 // -----------------------------------------------
@@ -1767,6 +1790,494 @@ function initRipple() {
 }
 
 // -----------------------------------------------
+// [FASE 5] SISTEMA DE PONTUAÇÃO
+// -----------------------------------------------
+
+function calcularScore(friend) {
+  const { totalSessoes, sessoesPagouTudo } = friend.estatisticas;
+  if (totalSessoes === 0) return 0;
+  return Math.round((sessoesPagouTudo / totalSessoes) * 100);
+}
+
+function getScoreInfo(score) {
+  if (score >= 80) return { color: '#22C55E', emoji: '🟢', label: 'Confiável' };
+  if (score >= 50) return { color: '#F59E0B', emoji: '🟡', label: 'Regular' };
+  return { color: '#EF4444', emoji: '🔴', label: 'Caloteiro' };
+}
+
+function getCategoriaMaisFrequente(friend) {
+  const contagem = {};
+  AppState.history.forEach(record => {
+    const participou = record.participants.some(
+      p => p.profileId === friend.id || p.name.toLowerCase() === friend.nome.toLowerCase()
+    );
+    if (!participou) return;
+    const cat = record.categoria || 'outro';
+    contagem[cat] = (contagem[cat] || 0) + 1;
+  });
+  const entries = Object.entries(contagem);
+  if (entries.length === 0) return getCategoryById('outro');
+  return getCategoryById(entries.sort((a, b) => b[1] - a[1])[0][0]);
+}
+
+function pickRandom(arr) {
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
+// -----------------------------------------------
+// [FASE 5] TELA 9 — PÓDIO DA GALERA
+// -----------------------------------------------
+
+function initPodio() {
+  renderPodio();
+}
+
+function renderPodio() {
+  const container = document.getElementById('podio-container');
+  const emptyEl   = document.getElementById('podio-empty');
+  const rankList  = document.getElementById('ranking-list');
+  if (!container) return;
+
+  const elegiveis = AppState.friends
+    .filter(f => f.estatisticas.totalSessoes > 0)
+    .map(f => ({ friend: f, score: calcularScore(f), sessoes: f.estatisticas.totalSessoes }))
+    .sort((a, b) => b.score - a.score || b.sessoes - a.sessoes);
+
+  if (elegiveis.length < 2) {
+    container.classList.add('hidden');
+    emptyEl.classList.remove('hidden');
+    rankList.innerHTML = '';
+    return;
+  }
+
+  emptyEl.classList.add('hidden');
+  container.classList.remove('hidden');
+
+  renderPodiumVisual(container, elegiveis.slice(0, 3));
+
+  const resto = elegiveis.slice(3);
+  if (resto.length === 0) {
+    rankList.innerHTML = '<p class="text-white/30 text-sm text-center py-3">Apenas o pódio por enquanto. Faça mais rachadas! 🍺</p>';
+    return;
+  }
+
+  rankList.innerHTML = resto.map((item, idx) => {
+    const info = getScoreInfo(item.score);
+    const pos  = idx + 4;
+    const cat  = getCategoriaMaisFrequente(item.friend);
+    return `
+      <div class="ranking-row" role="listitem" aria-label="${pos}º lugar: ${escapeHTML(item.friend.nome)}, score ${item.score}%">
+        <span class="ranking-pos">${pos}º</span>
+        ${buildAvatarHTML(item.friend.nome, 'sm')}
+        <div class="flex-1 min-w-0">
+          <p class="font-bold text-sm truncate">${escapeHTML(item.friend.nome)}</p>
+          <p class="text-xs text-white/40">${item.sessoes} sessão${item.sessoes !== 1 ? 'ões' : ''} · ${cat.icon} ${cat.nome}</p>
+        </div>
+        <div class="flex flex-col items-end gap-1">
+          <span class="text-sm font-black" style="color:${info.color};">${item.score}%</span>
+          <span class="text-xs text-white/40">${info.emoji} ${info.label}</span>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderPodiumVisual(container, top3) {
+  // Ordem visual clássica: 2º — 1º — 3º
+  const ordem      = [top3[1], top3[0], top3[2]];
+  const medals     = ['🥈', '🥇', '🥉'];
+  const posLabels  = ['2º', '1º', '3º'];
+  const spotClass  = ['second', 'first', 'third'];
+
+  const spots = ordem.map((item, vi) => {
+    if (!item) return '';
+    const info = getScoreInfo(item.score);
+    const cat  = getCategoriaMaisFrequente(item.friend);
+    return `
+      <div class="podium-spot podium-${spotClass[vi]}"
+           role="listitem"
+           aria-label="${posLabels[vi]} lugar: ${escapeHTML(item.friend.nome)}, score ${item.score}%">
+        <div class="podium-info">
+          <div class="podium-avatar-wrap ${spotClass[vi]}">
+            ${buildAvatarHTML(item.friend.nome, 'lg')}
+            <span class="podium-medal" aria-hidden="true">${medals[vi]}</span>
+          </div>
+          <p class="podium-name">${escapeHTML(item.friend.nome)}</p>
+          <span class="podium-score-badge" style="color:${info.color};">${item.score}%</span>
+          <span class="text-xs text-white/30">${cat.icon} ${cat.nome}</span>
+        </div>
+        <div class="podium-degrau" aria-hidden="true">
+          <span class="text-xs font-bold text-white/60">${posLabels[vi]}</span>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = `
+    <div class="podium-wrapper" role="list" aria-label="Pódio dos três primeiros">
+      ${spots.join('')}
+    </div>
+  `;
+}
+
+// -----------------------------------------------
+// [FASE 5] TELA 10 — CONFRONTO DIRETO
+// -----------------------------------------------
+
+const ConfrontoState = { p1: null, p2: null };
+
+function initConfronto() {
+  ConfrontoState.p1 = null;
+  ConfrontoState.p2 = null;
+  showConfrontoStep(1);
+  renderGuerreiroGrid('confronto-grid-1', null);
+}
+
+function showConfrontoStep(step) {
+  [1, 2, 3].forEach(n => {
+    const el = document.getElementById(`confronto-step${n}`);
+    if (el) el.classList.toggle('hidden', n !== step);
+  });
+}
+
+function renderGuerreiroGrid(containerId, disabledId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  const elegiveis = AppState.friends.filter(f => f.estatisticas.totalSessoes > 0);
+
+  if (elegiveis.length < 2) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <p class="empty-title">Poucos guerreiros</p>
+        <p class="empty-text">Você precisa de pelo menos 2 amigos com sessões para o confronto. Faça mais rachadas! ⚔️</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="guerreiro-grid">
+      ${elegiveis.map(f => {
+        const score     = calcularScore(f);
+        const info      = getScoreInfo(score);
+        const isDisabled = disabledId === f.id;
+        return `
+          <button
+            class="guerreiro-card ${isDisabled ? 'disabled' : ''}"
+            onclick="selectGuerreiro('${f.id}')"
+            ${isDisabled ? 'disabled aria-disabled="true"' : ''}
+            aria-label="${escapeHTML(f.nome)}, score ${score}%${isDisabled ? ', já selecionado' : ''}"
+          >
+            ${buildAvatarHTML(f.nome, 'sm')}
+            <p class="guerreiro-nome">${escapeHTML(f.nome)}</p>
+            <span class="text-xs font-bold" style="color:${info.color};">${score}% ${info.emoji}</span>
+          </button>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function selectGuerreiro(friendId) {
+  const friend = AppState.friends.find(f => f.id === friendId);
+  if (!friend) return;
+
+  if (!ConfrontoState.p1) {
+    ConfrontoState.p1 = friend;
+
+    // Prévia do p1 no step 2
+    const preview = document.getElementById('confronto-p1-preview');
+    if (preview) {
+      const score = calcularScore(friend);
+      const info  = getScoreInfo(score);
+      preview.innerHTML = `
+        <div class="flex items-center gap-3 bg-bg-surface rounded-xl px-4 py-3 mb-4 border border-primary/30">
+          ${buildAvatarHTML(friend.nome, 'sm')}
+          <div class="flex-1 min-w-0">
+            <p class="text-xs text-white/40 font-medium">Guerreiro 1 selecionado</p>
+            <p class="font-bold truncate">${escapeHTML(friend.nome)}</p>
+          </div>
+          <span class="text-sm font-black" style="color:${info.color};">${score}%</span>
+        </div>
+      `;
+    }
+
+    renderGuerreiroGrid('confronto-grid-2', friend.id);
+    showConfrontoStep(2);
+    return;
+  }
+
+  if (friendId === ConfrontoState.p1.id) return;
+  ConfrontoState.p2 = friend;
+
+  const cmp    = compararParticipantes(ConfrontoState.p1, ConfrontoState.p2);
+  const pontos = calcularVencedorConfronto(cmp);
+
+  renderConfrontoArena(ConfrontoState.p1, ConfrontoState.p2);
+  renderConfrontoCards(ConfrontoState.p1, ConfrontoState.p2, cmp);
+  renderVeredito(ConfrontoState.p1, ConfrontoState.p2, pontos);
+
+  document.getElementById('btn-copiar-confronto').onclick = () =>
+    copyConfrontoWhatsApp(ConfrontoState.p1, ConfrontoState.p2, cmp, pontos);
+  document.getElementById('btn-trocar-combatentes').onclick = initConfronto;
+
+  showConfrontoStep(3);
+}
+
+function renderConfrontoArena(p1, p2) {
+  const score1 = calcularScore(p1);
+  const score2 = calcularScore(p2);
+  const info1  = getScoreInfo(score1);
+  const info2  = getScoreInfo(score2);
+
+  const a1 = document.getElementById('arena-p1-avatar');
+  const a2 = document.getElementById('arena-p2-avatar');
+  const n1 = document.getElementById('arena-p1-nome');
+  const n2 = document.getElementById('arena-p2-nome');
+  const s1 = document.getElementById('arena-p1-score');
+  const s2 = document.getElementById('arena-p2-score');
+
+  if (a1) a1.innerHTML = buildAvatarHTML(p1.nome, 'lg');
+  if (a2) a2.innerHTML = buildAvatarHTML(p2.nome, 'lg');
+  if (n1) n1.textContent = p1.nome;
+  if (n2) n2.textContent = p2.nome;
+  if (s1) { s1.textContent = `${score1}%`; s1.style.color = info1.color; }
+  if (s2) { s2.textContent = `${score2}%`; s2.style.color = info2.color; }
+}
+
+function compararParticipantes(p1, p2) {
+  const score1 = calcularScore(p1);
+  const score2 = calcularScore(p2);
+  const cat1   = getCategoriaMaisFrequente(p1);
+  const cat2   = getCategoriaMaisFrequente(p2);
+  const media1 = p1.estatisticas.totalSessoes > 0
+    ? p1.estatisticas.totalPago / p1.estatisticas.totalSessoes : 0;
+  const media2 = p2.estatisticas.totalSessoes > 0
+    ? p2.estatisticas.totalPago / p2.estatisticas.totalSessoes : 0;
+
+  const w = (v1, v2, lowerBetter = false) => {
+    if (v1 === v2) return 'draw';
+    if (lowerBetter) return v1 < v2 ? 'p1' : 'p2';
+    return v1 > v2 ? 'p1' : 'p2';
+  };
+
+  return {
+    totalPago: { v1: p1.estatisticas.totalPago,           v2: p2.estatisticas.totalPago,           winner: w(p1.estatisticas.totalPago, p2.estatisticas.totalPago) },
+    score:     { v1: score1,                              v2: score2,                              winner: w(score1, score2) },
+    sessoes:   { v1: p1.estatisticas.totalSessoes,        v2: p2.estatisticas.totalSessoes,        winner: w(p1.estatisticas.totalSessoes, p2.estatisticas.totalSessoes) },
+    devendo:   { v1: p1.estatisticas.sessoesFicouDevendo, v2: p2.estatisticas.sessoesFicouDevendo, winner: w(p1.estatisticas.sessoesFicouDevendo, p2.estatisticas.sessoesFicouDevendo, true) },
+    badges:    { v1: p1.badgesDesbloqueados?.length || 0, v2: p2.badgesDesbloqueados?.length || 0, winner: w(p1.badgesDesbloqueados?.length || 0, p2.badgesDesbloqueados?.length || 0) },
+    mediaPago: { v1: media1,                              v2: media2,                              winner: w(media1, media2) },
+    categoria: { v1: cat1,                               v2: cat2,                               winner: 'draw' },
+  };
+}
+
+function calcularVencedorConfronto(cmp) {
+  let pts1 = 0, pts2 = 0;
+  Object.values(cmp).forEach(({ winner }) => {
+    if (winner === 'p1')   pts1++;
+    else if (winner === 'p2') pts2++;
+    else { pts1 += 0.5; pts2 += 0.5; }
+  });
+  return { pts1, pts2, winner: pts1 > pts2 ? 'p1' : pts2 > pts1 ? 'p2' : 'draw' };
+}
+
+function renderConfrontoCards(p1, p2, cmp) {
+  const container = document.getElementById('confronto-cards');
+  if (!container) return;
+
+  const cards = [
+    {
+      icon: '💰', titulo: 'Maior Gastador',
+      data: cmp.totalPago,
+      r1: () => formatBRL(cmp.totalPago.v1), r2: () => formatBRL(cmp.totalPago.v2),
+      txt: {
+        p1: ['Esse aí não poupa no rolê 💸', 'Bankzão no bar 👑', 'Tira foto do extrato e chora no banheiro 😂'],
+        p2: ['Gastou mais — e agora? 💸', 'Generoso demais pro próprio bolso 😅', 'Gastou mais que aluguel'],
+        draw: ['Dois falidos na mesma conta 😂', 'Empataram no rombo do mês 💸'],
+      },
+    },
+    {
+      icon: '⭐', titulo: 'Score de Confiança',
+      data: cmp.score,
+      r1: () => `${cmp.score.v1}%`, r2: () => `${cmp.score.v2}%`,
+      txt: {
+        p1: ['Esse não some na hora de pagar 🫡', 'Palavra de honra no Pix 💪', 'Referência de pagador'],
+        p2: ['Score superior, humildade também 🏆', 'Mais confiável no histórico', 'Paga em dia ou na pressão'],
+        draw: ['Dois suspeitos com o mesmo score 👀', 'Quem vai pagar? 🤡'],
+      },
+    },
+    {
+      icon: '📅', titulo: 'Presenças no Rolê',
+      data: cmp.sessoes,
+      r1: () => `${cmp.sessoes.v1} sessão${cmp.sessoes.v1 !== 1 ? 'ões' : ''}`,
+      r2: () => `${cmp.sessoes.v2} sessão${cmp.sessoes.v2 !== 1 ? 'ões' : ''}`,
+      txt: {
+        p1: ['Ícone do rolê 🌟', 'Nunca falta, nunca falha 🏆', 'Tá em tudo quanto é festinha'],
+        p2: ['Mais presença, mais responsabilidade 💪', 'Participou mais — sofreu mais 😂', 'O mais fiel da turma'],
+        draw: ['Dois viciados em rolê 🎉', 'Empataram na participação'],
+      },
+    },
+    {
+      icon: '😅', titulo: 'Calotes no Histórico',
+      data: cmp.devendo,
+      r1: () => `${cmp.devendo.v1} vez${cmp.devendo.v1 !== 1 ? 'es' : ''}`,
+      r2: () => `${cmp.devendo.v2} vez${cmp.devendo.v2 !== 1 ? 'es' : ''}`,
+      txt: {
+        p1: ['Menos calote, mais respeito 🫡', 'Honrou mais a dívida', 'O mais limpo do confronto!'],
+        p2: ['Deve menos, ou pelo menos finge 😅', 'Menos caloteiro por enquanto', 'Tá em reabilitação'],
+        draw: ['Dois caloteiros na mesma conta 💀', 'A gangue do Pix que não vai'],
+      },
+    },
+    {
+      icon: '🎖️', titulo: 'Conquistas',
+      data: cmp.badges,
+      r1: () => `${cmp.badges.v1} badge${cmp.badges.v1 !== 1 ? 's' : ''}`,
+      r2: () => `${cmp.badges.v2} badge${cmp.badges.v2 !== 1 ? 's' : ''}`,
+      txt: {
+        p1: ['Mais conquistas que o rival 🏅', 'Colecionador de glórias 🌟', 'Museu de badges'],
+        p2: ['Mais títulos no currículo 🎖️', 'Parede de troféus 🏆', 'Invicto no ranking'],
+        draw: ['Mesma quantidade de glória — ou de vergonha 😅', 'Empataram nos títulos 🏅'],
+      },
+    },
+    {
+      icon: '💸', titulo: 'Gasto Médio por Rolê',
+      data: cmp.mediaPago,
+      r1: () => formatBRL(cmp.mediaPago.v1), r2: () => formatBRL(cmp.mediaPago.v2),
+      txt: {
+        p1: ['Por sessão, esse aí não brinca 💸', 'Média impressionante pro cartão 😬', 'Gasta bem, sofre bem'],
+        p2: ['Mais pesado por saída 💰', 'O custo médio desse é salgado', 'Fatura toda mês por causa desse'],
+        draw: ['Mesma média de destruição do salário 😂', 'Empataram no custo por rolê'],
+      },
+    },
+    {
+      icon: '🍕', titulo: 'Rolê Favorito',
+      data: cmp.categoria,
+      r1: () => `${cmp.categoria.v1.icon} ${cmp.categoria.v1.nome}`,
+      r2: () => `${cmp.categoria.v2.icon} ${cmp.categoria.v2.nome}`,
+      txt: {
+        p1: null, p2: null,
+        draw: ['Cada um no seu estilo 🎭', 'Gostos diferentes, conta igual 😅', 'Rolês distintos, Pix igual'],
+      },
+    },
+  ];
+
+  container.innerHTML = cards.map(card => {
+    const { winner } = card.data;
+    const w1 = winner === 'p1';
+    const w2 = winner === 'p2';
+
+    let zoeira;
+    if (!card.txt.p1 || winner === 'draw') {
+      zoeira = pickRandom(card.txt.draw);
+    } else if (w1) {
+      zoeira = pickRandom(card.txt.p1);
+    } else {
+      zoeira = pickRandom(card.txt.p2);
+    }
+
+    const dirLabel = w1 ? '← vence' : w2 ? 'vence →' : 'empate';
+
+    return `
+      <div class="confronto-card ${w1 ? 'winner-left' : w2 ? 'winner-right' : 'draw'}" role="listitem">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-lg" aria-hidden="true">${card.icon}</span>
+          <span class="font-bold text-sm">${card.titulo}</span>
+          <span class="text-xs text-white/40 ml-auto">${dirLabel}</span>
+        </div>
+        <div class="flex justify-between items-center gap-3">
+          <span class="text-sm font-black ${w1 ? 'text-primary-light' : 'text-white/50'}">${card.r1()}</span>
+          <span class="text-xs text-white/30">VS</span>
+          <span class="text-sm font-black ${w2 ? 'text-primary-light' : 'text-white/50'}">${card.r2()}</span>
+        </div>
+        <p class="text-xs text-white/40 italic mt-2 text-center">${zoeira}</p>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderVeredito(p1, p2, pontos) {
+  const container = document.getElementById('confronto-veredito');
+  if (!container) return;
+
+  const { pts1, pts2, winner } = pontos;
+
+  const txtVencedor = [
+    'Destruiu na comparação 💀',
+    'Sem apelação, levou tudo 👑',
+    'Não foi nem difícil 😌',
+    'Quem tem moral fala 🎤',
+  ];
+  const txtEmpate = [
+    'Dois lados, mesma rocha 🪨',
+    'Empate digno entre dois suspeitos 😅',
+    'Tecnicamente, os dois estão devendo pra vida',
+  ];
+
+  if (winner === 'draw') {
+    container.innerHTML = `
+      <div class="veredito-card draw">
+        <div class="text-4xl mb-2" aria-hidden="true">🤝</div>
+        <p class="font-black text-xl mb-1">Empate épico!</p>
+        <p class="veredito-placar">${pts1} × ${pts2}</p>
+        <p class="text-sm text-white/60 mt-2">${pickRandom(txtEmpate)}</p>
+      </div>
+    `;
+    return;
+  }
+
+  const vencedor = winner === 'p1' ? p1 : p2;
+  const perdedor = winner === 'p1' ? p2 : p1;
+  const wPts     = winner === 'p1' ? pts1 : pts2;
+  const lPts     = winner === 'p1' ? pts2 : pts1;
+  const wInfo    = getScoreInfo(calcularScore(vencedor));
+
+  container.innerHTML = `
+    <div class="veredito-card winner">
+      <div class="text-4xl mb-2" aria-hidden="true">🏆</div>
+      <p class="text-xs text-white/50 mb-1 font-semibold uppercase tracking-widest">Vencedor</p>
+      <p class="font-black text-2xl mb-1" style="color:${wInfo.color};">${escapeHTML(vencedor.nome)}</p>
+      <p class="veredito-placar">${wPts} × ${lPts}</p>
+      <p class="text-xs text-white/50 mt-1">${escapeHTML(perdedor.nome)} ficou pra trás</p>
+      <p class="text-sm text-white/60 mt-2 italic">${pickRandom(txtVencedor)}</p>
+    </div>
+  `;
+}
+
+function copyConfrontoWhatsApp(p1, p2, cmp, pontos) {
+  const { pts1, pts2, winner } = pontos;
+  const vencedorNome = winner === 'draw' ? null
+    : winner === 'p1' ? p1.nome : p2.nome;
+
+  const lines = [
+    `⚔️ *TaNaRocha — Confronto Direto*`,
+    ``,
+    `*${p1.nome}* vs *${p2.nome}*`,
+    ``,
+    `💰 Total pago: ${formatBRL(cmp.totalPago.v1)} × ${formatBRL(cmp.totalPago.v2)}`,
+    `⭐ Score: ${cmp.score.v1}% × ${cmp.score.v2}%`,
+    `📅 Sessões: ${cmp.sessoes.v1} × ${cmp.sessoes.v2}`,
+    `😅 Calotes: ${cmp.devendo.v1} × ${cmp.devendo.v2}`,
+    ``,
+    winner === 'draw'
+      ? `🤝 *Empate! ${pts1} × ${pts2}* — dois suspeitos iguais 😂`
+      : `🏆 *Vencedor: ${vencedorNome}!* (${Math.max(pts1, pts2)} × ${Math.min(pts1, pts2)})`,
+    ``,
+    `_Calculado pelo TaNaRocha 🪨_`,
+  ];
+
+  const text = lines.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text)
+      .then(() => showToast('📱 Confronto copiado! Cola no grupo 🔥', 'success'))
+      .catch(() => fallbackCopy(text));
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+// -----------------------------------------------
 // INICIALIZAÇÃO DO APP — listeners one-time
 // -----------------------------------------------
 
@@ -1800,6 +2311,14 @@ function init() {
   document.getElementById('btn-historico').onclick = () => {
     renderHistorico();
     showScreen('screen-historico');
+  };
+  document.getElementById('btn-podio').onclick = () => {
+    initPodio();
+    showScreen('screen-podio');
+  };
+  document.getElementById('btn-confronto').onclick = () => {
+    initConfronto();
+    showScreen('screen-confronto');
   };
 
   // Nova sessão
@@ -1869,5 +2388,7 @@ window.addParticipant       = addParticipant;
 window.removeAmigo          = removeAmigo;
 window.setCategoria         = setCategoria;
 window.setHistoricoFiltro   = setHistoricoFiltro;
+window.selectGuerreiro      = selectGuerreiro;
+window.initConfronto        = initConfronto;
 
 document.addEventListener('DOMContentLoaded', init);
