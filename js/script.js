@@ -407,6 +407,17 @@ function addParticipant(nameOverride) {
 
   errEl.classList.add('hidden');
 
+  // [FASE 6] Chip de amigo "voa" antes de ser removido da lista — [H1] feedback imediato
+  if (viaChip) {
+    const chips = document.querySelectorAll('.chip-amigo');
+    for (const chip of chips) {
+      if (chip.querySelector('span:last-child')?.textContent === name) {
+        chip.classList.add('adding');
+        break;
+      }
+    }
+  }
+
   // Busca ou cria perfil persistente — [H7] Eficiência
   const friend = upsertFriend(name);
 
@@ -417,9 +428,13 @@ function addParticipant(nameOverride) {
     input.focus();
   }
 
-  renderParticipantList();
-  renderChipsSugestao();
-  updateAvancarButton();
+  // Aguarda animação do chip antes de re-renderizar (350ms < 420ms da animação)
+  const renderDelay = viaChip ? 320 : 0;
+  setTimeout(() => {
+    renderParticipantList();
+    renderChipsSugestao();
+    updateAvancarButton();
+  }, renderDelay);
 }
 
 function removeParticipant(id) {
@@ -475,7 +490,7 @@ function renderCategoryGrid() {
         aria-label="Categoria ${cat.nome}"
         style="${selected ? `--cat-color:${cat.cor};` : ''}"
       >
-        <span class="text-xl" aria-hidden="true">${cat.icon}</span>
+        <span class="text-xl cat-icon-animate" aria-hidden="true">${cat.icon}</span>
         <span class="text-xs font-semibold mt-0.5">${cat.nome}</span>
       </button>
     `;
@@ -1161,7 +1176,18 @@ function renderHistorico() {
   const badgesEmpty = document.getElementById('badges-empty');
 
   // [H7] Filtro de categorias — chips com scroll horizontal
-  const categoriasFiltroEl = document.getElementById('historico-categoria-filtro');
+  // [H10] Dica visual de drag na primeira visita ao histórico
+  const filtroEl = document.getElementById('historico-categoria-filtro');
+  const LS_HINT_DRAG = 'tanarocha:hintDragScroll';
+  if (filtroEl && !localStorage.getItem(LS_HINT_DRAG)) {
+    setTimeout(() => {
+      filtroEl.classList.add('hint-once');
+      setTimeout(() => filtroEl.classList.remove('hint-once'), 2200);
+    }, 400);
+    localStorage.setItem(LS_HINT_DRAG, '1');
+  }
+
+  const categoriasFiltroEl = filtroEl;
   if (categoriasFiltroEl) {
     const countAll = AppState.history.length;
     const chipsHTML = [
@@ -1338,7 +1364,13 @@ function checkBadges() {
 }
 
 function showBadgeModal(badge) {
-  document.getElementById('badge-modal-emoji').textContent = badge.emoji;
+  const emojiEl = document.getElementById('badge-modal-emoji');
+  emojiEl.textContent = badge.emoji;
+  // [FASE 6] Spring reveal no emoji — reset antes de re-aplicar animação
+  emojiEl.classList.remove('badge-emoji-reveal');
+  void emojiEl.offsetWidth;
+  emojiEl.classList.add('badge-emoji-reveal');
+
   document.getElementById('badge-modal-title').textContent = `${badge.title} — ${badge.person}`;
   document.getElementById('badge-modal-desc').textContent  = badge.desc;
 
@@ -2023,6 +2055,10 @@ function selectGuerreiro(friendId) {
   document.getElementById('btn-trocar-combatentes').onclick = initConfronto;
 
   showConfrontoStep(3);
+
+  // [FASE 6] Partículas no VS ao entrar na arena — [H1] momento vibrante
+  const vsEl = document.getElementById('arena-vs');
+  if (vsEl) setTimeout(() => spawnVsParticles(vsEl), 600);
 }
 
 function renderConfrontoArena(p1, p2) {
@@ -2278,6 +2314,112 @@ function copyConfrontoWhatsApp(p1, p2, cmp, pontos) {
 }
 
 // -----------------------------------------------
+// [FASE 6] LOGO EASTER EGG — 5 toques rápidos
+// [H10] Deleite oculto — descoberta natural, não documentada
+// -----------------------------------------------
+
+function setupLogoEasterEgg() {
+  const logo = document.getElementById('logo-home-img');
+  if (!logo) return;
+  let taps = 0;
+  let timer = null;
+
+  logo.addEventListener('click', () => {
+    taps++;
+    clearTimeout(timer);
+    timer = setTimeout(() => { taps = 0; }, 3000);
+
+    if (taps >= 5) {
+      taps = 0;
+      showConfetti();
+      setTimeout(stopConfetti, 2200);
+      showToast('🎉 Easter egg desbloqueado! Bora rachar?', 'success', 3000);
+    }
+  });
+}
+
+// -----------------------------------------------
+// [FASE 6] DRAG-TO-SCROLL — filtros horizontais
+// [H7] Flexibilidade — drag, swipe touch ou clique
+// -----------------------------------------------
+
+function setupDragScroll(el) {
+  if (el._dragAttached) return;
+  el._dragAttached = true;
+
+  let isDown = false;
+  let startX, scrollLeft, velocity, lastX, lastTime, rafId;
+  const container = el.closest('.drag-scroll-container');
+
+  function updateOverflow() {
+    if (!container) return;
+    container.classList.toggle('has-overflow-left',  el.scrollLeft > 4);
+    container.classList.toggle('has-overflow-right', el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+  }
+
+  el.addEventListener('mousedown', (e) => {
+    isDown = true;
+    el.classList.add('dragging');
+    startX    = e.pageX - el.offsetLeft;
+    scrollLeft = el.scrollLeft;
+    velocity  = 0;
+    lastX     = e.pageX;
+    lastTime  = performance.now();
+    if (rafId) cancelAnimationFrame(rafId);
+  });
+
+  el.addEventListener('mouseleave', () => { if (isDown) finishDrag(); });
+  el.addEventListener('mouseup',    () => { if (isDown) finishDrag(); });
+
+  el.addEventListener('mousemove', (e) => {
+    if (!isDown) return;
+    e.preventDefault();
+    const x = e.pageX - el.offsetLeft;
+    el.scrollLeft = scrollLeft - (x - startX) * 1.2;
+    const now = performance.now();
+    const dt  = now - lastTime;
+    if (dt > 0) velocity = (e.pageX - lastX) / dt;
+    lastX    = e.pageX;
+    lastTime = now;
+  });
+
+  function finishDrag() {
+    isDown = false;
+    el.classList.remove('dragging');
+    function inertia() {
+      if (Math.abs(velocity) < 0.05) { rafId = null; updateOverflow(); return; }
+      el.scrollLeft -= velocity * 8;
+      velocity *= 0.92;
+      rafId = requestAnimationFrame(inertia);
+    }
+    inertia();
+  }
+
+  el.addEventListener('scroll', updateOverflow, { passive: true });
+  updateOverflow();
+  window.addEventListener('resize', updateOverflow);
+}
+
+function initDragScrolls() {
+  document.querySelectorAll('.drag-scroll').forEach(setupDragScroll);
+}
+
+// -----------------------------------------------
+// [FASE 6] PARTÍCULAS VS — Confronto Direto
+// -----------------------------------------------
+
+function spawnVsParticles(vsEl) {
+  for (let i = 0; i < 8; i++) {
+    const p = document.createElement('span');
+    p.className = 'vs-particle';
+    p.style.left = `${Math.random() * 90}%`;
+    p.style.animationDelay = `${(Math.random() * 0.35).toFixed(2)}s`;
+    vsEl.appendChild(p);
+    setTimeout(() => p.remove(), 1800);
+  }
+}
+
+// -----------------------------------------------
 // INICIALIZAÇÃO DO APP — listeners one-time
 // -----------------------------------------------
 
@@ -2367,9 +2509,11 @@ function init() {
   document.getElementById('btn-limpar-demo').onclick      = clearDemoMode;
 
   initBackButtons();
-  initLogoLongPress(); // toque longo para Modo Demo
-  initInstallBanner(); // [PWA] banner de instalação
-  initRipple();        // [H1] ripple feedback em botões
+  initLogoLongPress();  // toque longo para Modo Demo
+  setupLogoEasterEgg(); // [FASE 6] [EASTER_EGG] 5 toques rápidos
+  initInstallBanner();  // [PWA] banner de instalação
+  initRipple();         // [H1] ripple feedback em botões
+  initDragScrolls();    // [FASE 6] drag-to-scroll nos filtros horizontais
   initHome();
   showScreen('screen-home');
 }

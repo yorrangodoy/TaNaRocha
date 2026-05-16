@@ -103,14 +103,17 @@
 
       <!-- Logo oficial -->
       <div class="mb-8 text-center" id="logo-container">
-        <!-- Toque longo no logo → ativa Modo Demo -->
-        <img
-          src="./assets/logo-tanarocha.png"
-          alt="TaNaRocha — Rachadinha? Só da conta."
-          class="logo-home mx-auto logo-pulse"
-          id="logo-home-img"
-          draggable="false"
-        />
+        <div class="logo-home-wrapper mx-auto">
+          <div class="logo-glow" aria-hidden="true"></div>
+          <!-- Toque longo → Modo Demo | 5 toques rápidos → easter egg [EASTER_EGG] -->
+          <img
+            src="./assets/logo-tanarocha.png"
+            alt="TaNaRocha — Rachadinha? Só da conta."
+            class="logo-home"
+            id="logo-home-img"
+            draggable="false"
+          />
+        </div>
         <!-- [H2] Microcopy em linguagem natural brasileira -->
         <p class="text-white/50 text-sm mt-3 font-medium">Rachadinha? Só da conta.</p>
       </div>
@@ -483,15 +486,16 @@
           </button>
         </div>
 
-        <!-- Filtro por categoria — [H5] chips com scroll horizontal -->
-        <div
-          id="historico-categoria-filtro"
-          class="flex gap-2 overflow-x-auto pb-2 mb-3"
-          role="group"
-          aria-label="Filtrar rachadas por categoria"
-          style="scrollbar-width:none;"
-        >
-          <!-- preenchido via JS por renderHistorico() -->
+        <!-- Filtro por categoria — [H5] chips com scroll horizontal, [H7] drag no desktop -->
+        <div class="drag-scroll-container">
+          <div
+            id="historico-categoria-filtro"
+            class="drag-scroll flex gap-2 pb-2 mb-3"
+            role="group"
+            aria-label="Filtrar rachadas por categoria"
+          >
+            <!-- preenchido via JS por renderHistorico() -->
+          </div>
         </div>
 
         <div id="historico-list" class="space-y-3" role="list" aria-label="Lista de sessões anteriores"></div>
