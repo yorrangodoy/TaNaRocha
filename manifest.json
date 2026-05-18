@@ -5,8 +5,8 @@
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0F0F0F",
-  "theme_color": "#7C3AED",
+  "background_color": "#FFF8E7",
+  "theme_color": "#6B3FF6",
   "categories": ["finance", "utilities", "social"],
   "lang": "pt-BR",
   "icons": [
