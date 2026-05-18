@@ -7,18 +7,18 @@
 /* [H4] Padrão visual consistente — variáveis base */
 :root {
   /* === CORES PRIMÁRIAS — Comic/Sticker === */
-  --bg-primary: #FFF8E7;
-  --bg-secondary: #FFFFFF;
-  --bg-card: #FFFFFF;
-  --bg-dark: #1A1A1A;
+  --bg-primary: #0D0D18;
+  --bg-secondary: #16162A;
+  --bg-card: #1E1C38;
+  --bg-dark: #0D0D18;
 
   /* Aliases de compatibilidade com Tailwind/JS */
   --color-primary: #6B3FF6;
   --color-primary-dark: #4527D9;
   --color-primary-light: #B3A1FF;
-  --color-bg: #FFF8E7;
-  --color-bg-card: #FFFFFF;
-  --color-bg-surface: #F0EBD8;
+  --color-bg: #0D0D18;
+  --color-bg-card: #1E1C38;
+  --color-bg-surface: #252246;
   --color-success: #22C55E;
   --color-danger: #FF4D4D;
 
@@ -31,22 +31,22 @@
   --cyan-pop: #00C2FF;
 
   /* Texto */
-  --text-primary: #1A1A1A;
-  --text-secondary: #4A4A4A;
-  --text-muted: #757575;
+  --text-primary: #F0EDFF;
+  --text-secondary: rgba(240,237,255,0.72);
+  --text-muted: rgba(240,237,255,0.45);
   --text-on-dark: #FFFFFF;
 
   /* Linhas pretas — assinatura do estilo comic */
   --line-thick: 3px;
   --line-medium: 2px;
   --line-thin: 1.5px;
-  --outline: #1A1A1A;
+  --outline: rgba(255,255,255,0.22);
 
   /* === SOMBRAS DURAS (Memphis style) === */
-  --shadow-hard-sm: 3px 3px 0 0 #1A1A1A;
-  --shadow-hard-md: 5px 5px 0 0 #1A1A1A;
-  --shadow-hard-lg: 8px 8px 0 0 #1A1A1A;
-  --shadow-hard-xl: 12px 12px 0 0 #1A1A1A;
+  --shadow-hard-sm: 3px 3px 0 0 rgba(107,63,246,0.55);
+  --shadow-hard-md: 5px 5px 0 0 rgba(107,63,246,0.65);
+  --shadow-hard-lg: 8px 8px 0 0 #6B3FF6;
+  --shadow-hard-xl: 12px 12px 0 0 #6B3FF6;
   --shadow-purple: 5px 5px 0 0 #6B3FF6;
   --shadow-yellow: 5px 5px 0 0 #FFD93D;
 
@@ -54,7 +54,7 @@
   --shadow-sm: var(--shadow-hard-sm);
   --shadow-md: var(--shadow-hard-md);
   --shadow-lg: var(--shadow-hard-lg);
-  --shadow-glow: var(--shadow-hard-md);
+  --shadow-glow: 0 0 20px rgba(107,63,246,0.4);
 
   /* Border radius */
   --radius-sm: 8px;
@@ -109,7 +109,7 @@
 
 body {
   background:
-    radial-gradient(circle, rgba(26,26,26,0.055) 1px, transparent 1px),
+    radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px),
     var(--bg-primary);
   background-size: 24px 24px;
   background-attachment: fixed;
@@ -131,9 +131,9 @@ body::before {
   right: -120px;
   width: 340px;
   height: 340px;
-  background: var(--yellow-pop);
+  background: var(--color-primary);
   border-radius: 50%;
-  opacity: 0.12;
+  opacity: 0.18;
   z-index: 0;
   filter: blur(70px);
   pointer-events: none;
@@ -141,36 +141,8 @@ body::before {
 
 main, .screen, #app { position: relative; z-index: 1; }
 
-/* ==============================================
-   OVERRIDE GLOBAL — texto claro → escuro
-   (Tailwind text-white/* gerado no tema dark)
-   ============================================== */
+/* [H4] Tela base — cor do texto via variável */
 .screen { color: var(--text-primary); }
-
-/* Converte texto branco/opacity do Tailwind para o novo tema claro */
-.screen .text-white,
-.card .text-white,
-.sheet .text-white { color: var(--text-primary) !important; }
-
-.screen [class*="text-white/6"],
-.card [class*="text-white/6"],
-.sheet [class*="text-white/6"] { color: var(--text-secondary) !important; }
-
-.screen [class*="text-white/5"],
-.card [class*="text-white/5"],
-.sheet [class*="text-white/5"] { color: var(--text-muted) !important; }
-
-.screen [class*="text-white/4"],
-.card [class*="text-white/4"],
-.sheet [class*="text-white/4"] { color: var(--text-muted) !important; }
-
-.screen [class*="text-white/3"],
-.card [class*="text-white/3"],
-.sheet [class*="text-white/3"] { color: #9CA3AF !important; }
-
-.screen [class*="text-white/2"],
-.card [class*="text-white/2"],
-.sheet [class*="text-white/2"] { color: #C4C4C4 !important; }
 
 /* ==============================================
    TIPOGRAFIA
@@ -506,10 +478,10 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
 .input-field::placeholder { color: var(--text-muted); font-weight: 400; }
 
 .input-field:focus {
-  background: var(--yellow-pop);
+  background: rgba(107,63,246,0.18);
+  border-color: var(--color-primary);
   transform: translate(-2px, -2px);
   box-shadow: var(--shadow-hard-md);
-  border-color: var(--outline);
 }
 
 .input-field.error {
@@ -650,7 +622,7 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
 
 .participant-card-body {
   padding: 0 1rem 1rem;
-  border-top: var(--line-medium) solid rgba(26,26,26,0.12);
+  border-top: var(--line-medium) solid rgba(255,255,255,0.08);
 }
 
 /* ==============================================
@@ -661,7 +633,7 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0;
-  border-bottom: var(--line-thin) solid rgba(26,26,26,0.1);
+  border-bottom: var(--line-thin) solid rgba(255,255,255,0.08);
 }
 
 .item-row:last-child { border-bottom: none; }
@@ -721,7 +693,7 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
 }
 
 .balance-card.paid {
-  background: #EDFFF4;
+  background: rgba(34,197,94,0.15);
   border-color: var(--green-pop);
   box-shadow: 3px 3px 0 0 var(--green-pop);
 }
@@ -923,9 +895,8 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
 
 /* Divisor */
 .divider {
-  height: 2px;
-  background: var(--outline);
-  opacity: 0.1;
+  height: 1px;
+  background: rgba(255,255,255,0.1);
   margin: 1.25rem 0;
 }
 
@@ -959,7 +930,7 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
   object-fit: contain;
   margin: 0 auto 16px auto;
   display: block;
-  filter: drop-shadow(3px 3px 0 var(--outline));
+  filter: drop-shadow(3px 3px 0 var(--color-primary));
 }
 
 /* Previne zoom em inputs no iOS — [H6] Mobile-first */
@@ -980,7 +951,7 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
   object-fit: contain;
   display: block;
   border-radius: 1.5rem;
-  filter: drop-shadow(5px 5px 0 var(--outline));
+  filter: drop-shadow(5px 5px 0 var(--yellow-pop));
 }
 
 @media (min-width: 640px) {
@@ -1147,7 +1118,7 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
   display: inline-block;
   width: 20px;
   height: 20px;
-  border: 2px solid rgba(26,26,26,0.2);
+  border: 2px solid rgba(255,255,255,0.12);
   border-top-color: var(--outline);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
@@ -1444,10 +1415,9 @@ small { font-size: var(--text-sm); color: var(--text-muted); }
 .sheet-handle {
   width: 48px;
   height: 5px;
-  background: var(--outline);
+  background: rgba(255,255,255,0.28);
   border-radius: var(--radius-full);
   margin: 0 auto var(--space-5);
-  opacity: 0.25;
 }
 
 .sheet-title {
@@ -1496,14 +1466,14 @@ button { position: relative; overflow: hidden; }
 .skeleton {
   background: linear-gradient(
     90deg,
-    rgba(26,26,26,0.04) 0%,
-    rgba(26,26,26,0.09) 50%,
-    rgba(26,26,26,0.04) 100%
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 100%
   );
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.5s ease-in-out infinite;
   border-radius: var(--radius-md);
-  border: var(--line-thin) solid rgba(26,26,26,0.1);
+  border: var(--line-thin) solid rgba(255,255,255,0.08);
 }
 
 @keyframes skeleton-shimmer {
@@ -1607,8 +1577,8 @@ button { position: relative; overflow: hidden; }
   box-shadow: 0 0 0 0 var(--outline);
 }
 
-/* Garante texto legível no estado hover */
-.home-nav-card:hover span { color: var(--text-primary) !important; }
+/* Garante texto legível no estado hover (fundo amarelo = texto escuro) */
+.home-nav-card:hover span { color: #1A1A1A !important; }
 
 /* ==============================================
    PÓDIO — [GAMIFICATION] Comic style
@@ -1894,13 +1864,13 @@ button { position: relative; overflow: hidden; }
 
 .confronto-card.winner-left {
   border-color: var(--color-primary);
-  background: #EEE8FF;
+  background: rgba(107,63,246,0.22);
   box-shadow: var(--shadow-purple);
 }
 
 .confronto-card.winner-right {
   border-color: var(--pink-pop);
-  background: #FFE8F5;
+  background: rgba(255,91,173,0.18);
   box-shadow: 5px 5px 0 0 var(--pink-pop);
 }
 
@@ -2004,7 +1974,7 @@ button { position: relative; overflow: hidden; }
   object-fit: contain;
   border-radius: 0;
   animation: logo-bounce-comic 3.5s var(--ease-in-out) infinite;
-  filter: drop-shadow(5px 5px 0 var(--outline));
+  filter: drop-shadow(5px 5px 0 var(--yellow-pop));
   will-change: transform;
 }
 
@@ -2249,6 +2219,40 @@ button { position: relative; overflow: hidden; }
 #progress-fill {
   background: var(--color-primary) !important;
 }
+
+/* ==============================================
+   DARK THEME — texto escuro em fundos pop/claros
+   Necessário porque --text-primary agora é claro
+   ============================================== */
+
+/* Badges e pills com fundo amarelo/cyan */
+.badge-count,
+.badge-pending,
+.context-tag,
+.confronto-score-pill,
+.podium-first .podium-score-badge,
+.podium-second .podium-score-badge {
+  color: #1A1A1A;
+}
+
+/* Veredito com fundo amarelo */
+.veredito-card,
+.veredito-placar { color: #1A1A1A; }
+
+/* Número no degrau do pódio */
+.podium-degrau { color: rgba(26,26,26,0.55); }
+
+/* Hover em fundo amarelo pop — texto escuro */
+.btn-secondary:hover,
+.btn-back:hover,
+.btn-back-step:hover,
+.btn-value-control:hover,
+.mode-card:hover,
+.cat-card:hover,
+.chip-amigo:hover,
+.cat-filter-chip:hover,
+.guerreiro-card:hover,
+.btn-item-value:hover { color: #1A1A1A !important; }
 
 /* ==============================================
    A11Y — prefers-reduced-motion
