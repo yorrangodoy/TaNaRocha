@@ -7,6 +7,13 @@
 
 'use strict';
 
+// [CACHE_BUST] Força service worker a checar atualização ao carregar
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    registrations.forEach(reg => reg.update());
+  });
+}
+
 // -----------------------------------------------
 // ESTADO GLOBAL DA APLICAÇÃO
 // -----------------------------------------------
@@ -146,8 +153,21 @@ function confirmModal(title, body) {
 
 /** Mostra uma tela com transição direcional. [H4] Consistência — todas as navegações usam o mesmo padrão */
 function showScreen(screenId, direction = 'forward') {
-  const target = document.getElementById(screenId);
+  const target  = document.getElementById(screenId);
   if (!target) return;
+
+  const current = document.querySelector('.screen:not(.hidden)');
+
+  // Anima saída da tela atual
+  if (current && current !== target) {
+    const exitClass = direction === 'back' ? 'screen-exit-right' : 'screen-exit-left';
+    current.classList.add(exitClass);
+    setTimeout(() => {
+      current.classList.add('hidden');
+      current.classList.remove(exitClass);
+      current.style.animation = '';
+    }, 210);
+  }
 
   // Remove animação anterior para forçar reinício
   target.style.animation = 'none';
@@ -162,10 +182,10 @@ function showScreen(screenId, direction = 'forward') {
     target.style.animation = '';
   }, { once: true });
 
-  // Esconde as demais após um frame (evita flash)
+  // Esconde eventuais telas residuais que não eram a "current" detectada
   requestAnimationFrame(() => {
     document.querySelectorAll('.screen').forEach(s => {
-      if (s !== target) s.classList.add('hidden');
+      if (s !== target && s !== current) s.classList.add('hidden');
     });
   });
 
@@ -1219,10 +1239,10 @@ function renderHistorico() {
     emptyEl.classList.remove('hidden');
   } else {
     emptyEl.classList.add('hidden');
-    list.innerHTML = registrosFiltrados.map(record => {
+    list.innerHTML = registrosFiltrados.map((record, i) => {
       const cat = getCategoryById(record.categoria || 'outro');
       return `
-        <div class="history-card" role="article" aria-label="${escapeHTML(record.eventName)}, ${record.date}">
+        <div class="history-card list-item-stagger" role="article" aria-label="${escapeHTML(record.eventName)}, ${record.date}" style="animation-delay:${i * 55}ms">
           <div class="flex items-center gap-3">
             <!-- Ícone de categoria -->
             <div class="cat-icon-circle" style="background-color:${cat.cor}20; color:${cat.cor};" aria-hidden="true">${cat.icon}</div>
@@ -1431,8 +1451,8 @@ function renderAmigos() {
 
   emptyEl.classList.add('hidden');
 
-  list.innerHTML = sorted.map(f => `
-    <div class="amigo-card" role="listitem" aria-label="${escapeHTML(f.nome)}, ${f.estatisticas.totalSessoes} sessões">
+  list.innerHTML = sorted.map((f, i) => `
+    <div class="amigo-card list-item-stagger" role="listitem" aria-label="${escapeHTML(f.nome)}, ${f.estatisticas.totalSessoes} sessões" style="animation-delay:${i * 55}ms">
       ${buildAvatarHTML(f.nome, 'lg')}
       <div class="flex-1 min-w-0">
         <p class="font-bold text-sm">${escapeHTML(f.nome)}</p>
@@ -1898,7 +1918,7 @@ function renderPodio() {
     const pos  = idx + 4;
     const cat  = getCategoriaMaisFrequente(item.friend);
     return `
-      <div class="ranking-row" role="listitem" aria-label="${pos}º lugar: ${escapeHTML(item.friend.nome)}, score ${item.score}%">
+      <div class="ranking-row list-item-stagger" role="listitem" aria-label="${pos}º lugar: ${escapeHTML(item.friend.nome)}, score ${item.score}%" style="animation-delay:${idx * 55}ms">
         <span class="ranking-pos">${pos}º</span>
         ${buildAvatarHTML(item.friend.nome, 'sm')}
         <div class="flex-1 min-w-0">

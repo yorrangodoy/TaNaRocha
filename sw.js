@@ -1,7 +1,7 @@
 // [PWA] Service Worker — cache offline first
 // Garante que o app funciona sem conexão após o primeiro carregamento
 
-const CACHE_NAME = 'tanarocha-v2';
+const CACHE_NAME = 'tanarocha-v2-logo';
 const ASSETS = [
   './',
   './index.html',
@@ -12,19 +12,21 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache => cache.addAll(ASSETS))
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    Promise.all([
+      caches.keys().then(keys =>
+        Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
+      ),
+      self.clients.claim(),
+    ])
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (e) => {
