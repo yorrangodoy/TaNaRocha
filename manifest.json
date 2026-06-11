@@ -1,0 +1,58 @@
+{
+  "name": "TaNaRocha — Rachadinha? Só da conta",
+  "short_name": "TaNaRocha",
+  "description": "Divide a conta entre amigos sem briga e sem drama.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "/tanarocha",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone"],
+  "orientation": "portrait",
+  "background_color": "#0D0D18",
+  "theme_color": "#0D0D18",
+  "categories": ["finance", "utilities", "social"],
+  "lang": "pt-BR",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "./assets/logo-tanarocha.png?v=2",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/logo-tanarocha.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./assets/logo-tanarocha.png?v=2",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./assets/logo-tanarocha.png?v=2",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Nova Rachada",
+      "short_name": "Rachar",
+      "description": "Criar uma nova rachada",
+      "url": "./index.html?action=nova-rachada",
+      "icons": [{ "src": "./assets/icons/rachar.png", "sizes": "256x256" }]
+    },
+    {
+      "name": "Pódio",
+      "short_name": "Pódio",
+      "description": "Ver ranking dos amigos",
+      "url": "./index.html?screen=podio",
+      "icons": [{ "src": "./assets/icons/trophy.png", "sizes": "256x256" }]
+    }
+  ]
+}
