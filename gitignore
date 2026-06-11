@@ -1,0 +1,28 @@
+# Sistema operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependências (caso adicione no futuro)
+node_modules/
+
+# Arquivos de ambiente
+.env
+.env.local
+
+# Build (caso adicione no futuro)
+dist/
+build/
+
+# Vercel
+.vercel
