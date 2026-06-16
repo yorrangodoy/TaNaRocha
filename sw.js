@@ -1,7 +1,7 @@
 // [PWA] Service Worker — cache offline first
 // Garante que o app funciona sem conexão após o primeiro carregamento
 
-const CACHE_NAME = 'tanarocha-v3-pwa-fix';
+const CACHE_NAME = 'tanarocha-v4-logo-novo';
 
 const ASSETS = [
   './',

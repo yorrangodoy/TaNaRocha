@@ -15,25 +15,25 @@
   "dir": "ltr",
   "icons": [
     {
-      "src": "./assets/logo-tanarocha.png?v=2",
+      "src": "./assets/logo-tanarocha.png?v=3",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./assets/logo-tanarocha.png?v=2",
+      "src": "./assets/logo-tanarocha.png?v=3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "./assets/logo-tanarocha.png?v=2",
+      "src": "./assets/logo-tanarocha.png?v=3",
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "maskable"
     },
     {
-      "src": "./assets/logo-tanarocha.png?v=2",
+      "src": "./assets/logo-tanarocha.png?v=3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
